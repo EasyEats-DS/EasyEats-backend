@@ -27,7 +27,15 @@
 
 ## Description
 
-MealWhirl-server is a backend application designed to power a food delivery platform. It leverages a microservices architecture to ensure scalability, performance, and maintainability. The platform supports customer, restaurant, and delivery personnel roles, providing features such as real-time order tracking, secure payments, and notifications.
+EasyEats Server is a robust, scalable backend solution for modern food delivery platforms, built with microservices architecture using Node.js and Express.js. The platform seamlessly connects customers, restaurants, and delivery personnel through a high-performance system designed for reliability and real-time operations.
+
+Key aspects:
+- 🚀 Microservices-based architecture for independent scaling
+- 🔒 Secure authentication with JWT and role-based access control
+- 📱 Supports web and mobile interfaces
+- 📊 Real-time order tracking and notifications
+- 💳 Multiple payment gateway integrations
+
 
 ## Features
 
@@ -60,80 +68,30 @@ MealWhirl-server is a backend application designed to power a food delivery plat
 
 ```bash
 # Clone the repository
-git clone https://github.com/MealWhirl/MealWhirl-server.git
+git clone https://github.com/EasyEats-DS/EasyEats-backend.git
 
-# Navigate into the project folder
-cd MealWhirl-server
+# Navigate into the project folders and Install dependencies
+cd EasyEats-backend
 
-# Install dependencies
+cd api-gateway
+npm install
+
+cd order-service
+npm install
+
+cd user-service
 npm install
 ```
 
 ## Running the Project
 
+### Open the Each Service Directory and run this following command to start the service
+
 ### Development Mode
-
-```bash
-npm run dev
-```
-
-### Production Mode
 
 ```bash
 npm start
 ```
-
-## Environment Variables
-
-Create a `.env` file and define the following variables:
-
-```
-PORT=5000
-MONGO_URI=your_mongo_url
-JWT_SECRET=your_secret_key
-NODE_ENV=development
-PAYPAL_CLIENT_ID=your_paypal_client_id
-PAYPAL_SECRET=your_paypal_secret
-MAPBOX_API_KEY=your_mapbox_api_key
-KAFKA_BROKER=your_kafka_broker
-EMAIL_SERVICE=your_email_service
-EMAIL_USER=your_email
-EMAIL_PASS=your_email_password
-```
-
-## API Documentation
-
-The API is divided into the following services:
-
-### Authentication
-
-| Method | Endpoint                  | Description               |
-| ------ | ------------------------- | ------------------------- |
-
-
-### Restaurant Management
-
-| Method | Endpoint                  | Description                     |
-| ------ | ------------------------- | ------------------------------- |
-
-
-## Testing
-
-### Unit Tests
-
-```bash
-npm test
-```
-
-### Performance Tests
-
-```bash
-artillery run performance-test.yml
-```
-
-## Contributors
-
-- [Your Name](https://github.com/your-profile)
 
 ## License
 
