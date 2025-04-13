@@ -1,0 +1,111 @@
+# version: '3.8'
+# services:
+#   mongo:
+#     image: mongo:latest
+#     ports:
+#       - "27017:27017"
+#     volumes:
+#       - mongo-data:/data/db
+
+#   zookeeper:
+#     image: confluentinc/cp-zookeeper:latest
+#     environment:
+#       ZOOKEEPER_CLIENT_PORT: 2181
+#       ZOOKEEPER_TICK_TIME: 2000
+#     ports:
+#       - "2181:2181"
+
+#   kafka:
+#     image: confluentinc/cp-kafka:latest
+#     depends_on:
+#       - zookeeper
+#     ports:
+#       - "9092:9092"
+#     environment:
+#       KAFKA_BROKER_ID: 1
+#       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+#       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+#   api-gateway:
+#     build: ./api-gateway
+#     ports:
+#       - "5000:5000"
+#     depends_on:
+#       - user-service
+#       - order-service
+
+#   user-service:
+#     build: ./user-service
+#     ports:
+#       - "5001:5001"
+#     depends_on:
+#       - mongo
+#       - kafka
+#     environment:
+#       - MONGO_URI=mongodb+srv://bhashanasirimanna:Rn80stFY6qp7jpNv@cluster0.tx5zu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+
+#   order-service:
+#     build: ./order-service
+#     ports:
+#       - "5002:5002"
+#     depends_on:
+#       - kafka
+#     environment:
+#       - MONGO_URI=mongodb+srv://bhashanasirimanna:vBsEhH0XYmHjizXk@cluster0.mdp0gxg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+
+# volumes:
+#   mongo-data:
+
+version: '3.8'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+
+  # user-service:
+  #   build: ./user-service
+  #   ports:
+  #     - "5001:5001"
+  #   depends_on:
+  #     - kafka
+  #   environment:
+  #     - MONGO_URI=mongodb+srv://bhashanasirimanna:Rn80stFY6qp7jpNv@cluster0.tx5zu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+  #     - KAFKA_BROKER=kafka:9092
+  #     - SERVICE_TYPE=user
+
+  # order-service:
+  #   build: ./order-service
+  #   ports:
+  #     - "5002:5002"
+  #   depends_on:
+  #     - kafka
+  #   environment:
+  #     - MONGO_URI=mongodb+srv://bhashanasirimanna:vBsEhH0XYmHjizXk@cluster0.mdp0gxg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+  #     - KAFKA_BROKER=kafka:9092
+  #     - SERVICE_TYPE=order
+
+  # api-gateway:
+  #   build: ./api-gateway
+  #   ports:
+  #     - "5000:5000"
+  #   depends_on:
+  #     - user-service
+  #     - order-service
