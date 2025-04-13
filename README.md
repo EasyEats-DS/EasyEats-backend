@@ -87,6 +87,7 @@ npm install
 
 ### open Docker Desktop app and make suer it running  in the background and go to the root directory:
 ```bash
+docker compose build
 docker compose up
 ```
 
