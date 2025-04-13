@@ -85,6 +85,11 @@ npm install
 
 ## Running the Project
 
+### open Docker Desktop app and make suer it running  in the background and go to the root directory:
+```bash
+docker compose up
+```
+
 ### Open the Each Service Directory and run this following command to start the service
 
 ### Development Mode
