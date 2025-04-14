@@ -345,4 +345,10 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# IDE - IntelliJ/WebStorm
+.idea/
+*.iml
+*.iws
+*.ipr
+
 # End of https://www.toptal.com/developers/gitignore/api/react,node,macos,windows,intellij,visualstudiocode
