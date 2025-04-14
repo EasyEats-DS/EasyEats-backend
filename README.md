@@ -30,7 +30,7 @@
 EasyEats Server is a robust, scalable backend solution for modern food delivery platforms, built with microservices architecture using Node.js and Express.js. The platform seamlessly connects customers, restaurants, and delivery personnel through a high-performance system designed for reliability and real-time operations.
 
 Key aspects:
-- 🚀 Microservices-based architecture for independent scaling
+- 🚀 Microservices-based architecture for independent scalings
 - 🔒 Secure authentication with JWT and role-based access control
 - 📱 Supports web and mobile interfaces
 - 📊 Real-time order tracking and notifications
