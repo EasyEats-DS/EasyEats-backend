@@ -19,11 +19,17 @@ exports.createUser = async (userData) => {
       throw error;
     }
     
-    // Create new user
+    // Create new user with address (if provided)
     const user = new User({
       name,
       email,
-      address
+      address: address ? {  // Only include address if provided
+        street: address.street || null,
+        city: address.city || null,
+        state: address.state || null,
+        zipCode: address.zipCode || null,
+        country: address.country || null
+      } : undefined
     });
     
     const savedUser = await user.save();
