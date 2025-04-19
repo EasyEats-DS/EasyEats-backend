@@ -49,11 +49,21 @@ const initKafkaConsumer = async () => {
             case 'getUser':
               responseData = await userController.getUserById(payload.userId);
               break;
+            case 'getUsers':
+              responseData = await userController.getUsers(payload);
+              break;
+            case 'updateUser':
+              responseData = await userController.updateUserById(payload.userId, payload.userData);
+              break;
+            case 'deleteUser':
+              responseData = await userController.deleteUserById(payload.userId);
+              statusCode = 200;
+              break;
             default:
               success = false;
               responseData = { message: `Unknown action: ${action}` };
               statusCode = 400;
-          }
+            }
           
           // Send response back to API gateway
           await producer.send({
