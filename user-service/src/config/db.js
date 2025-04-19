@@ -16,7 +16,7 @@ const connectDB = async () => {
       retryWrites: true
     });
     console.log("Service connected to MongoDB");
-    // console.log("Connected to database:", mongoose.connection.db.databaseName); 
+    console.log("Connected to database:", mongoose.connection.db.databaseName); 
   } catch (error) {
     console.error("MongoDB connection error:", error);
     process.exit(1);
