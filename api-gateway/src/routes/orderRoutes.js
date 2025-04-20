@@ -1,48 +1,57 @@
 const express = require('express');
-const router = express.Router();
 const { sendMessageWithResponse } = require('../services/kafkaService');
+const router = express.Router();
 
-// Create a new order
-router.post('/', async (req, res) => {
+// Route to get all orders with pagination
+router.get('/', async (req, res) => {
   try {
-    // First, validate that the user exists
-    const userValidation = await sendMessageWithResponse('user-request', {
-      action: 'getUser',
-      payload: { userId: req.body.userId }
+    // Send Kafka message to fetch all orders
+    const ordersResult = await sendMessageWithResponse('order-request', {
+      action: 'getAllOrders',
+      payload: {
+        page: req.query.page,
+        limit: req.query.limit
+      }
     });
-    
-    if (!userValidation.user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    // If user exists, create the order
-    const orderResult = await sendMessageWithResponse('order-request', {
-      action: 'createOrder',
-      payload: req.body
-    });
-    
-    return res.status(201).json(orderResult);
+    return res.json(ordersResult);
   } catch (error) {
-    console.error('Error creating order:', error.message);
-    return res.status(500).json({ 
-      message: error.message || 'Error creating order' 
+    console.error('Error fetching all orders:', error.message);
+    return res.status(error.statusCode || 500).json({
+      message: error.message || 'Error fetching all orders'
     });
   }
 });
 
-// Get order by ID
+// Route to get a single order by ID
 router.get('/:id', async (req, res) => {
   try {
-    // Send Kafka message to Order Service
+    // Send Kafka message to fetch order by ID
     const orderResult = await sendMessageWithResponse('order-request', {
       action: 'getOrder',
-      payload: { id: req.params.id } // Pass order ID from URL
+      payload: { id: req.params.id }
     });
     return res.json(orderResult);
   } catch (error) {
     console.error('Error fetching order:', error.message);
-    return res.status(error.statusCode || 500).json({ 
-      message: error.message || 'Error fetching order' 
+    return res.status(error.statusCode || 500).json({
+      message: error.message || 'Error fetching order'
+    });
+  }
+});
+
+// Route to create a new order
+router.post('/', async (req, res) => {
+  try {
+    // Send Kafka message to create order
+    const orderResult = await sendMessageWithResponse('order-request', {
+      action: 'createOrder',
+      payload: req.body
+    });
+    return res.status(201).json(orderResult);
+  } catch (error) {
+    console.error('Error creating order:', error.message);
+    return res.status(error.statusCode || 500).json({
+      message: error.message || 'Error creating order'
     });
   }
 });
