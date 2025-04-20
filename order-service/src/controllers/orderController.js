@@ -51,32 +51,32 @@ exports.getOrderById = async (orderId) => {
   }
 };
 
-exports.updateOrderStatus = async (orderId, status) => {
-  try {
-    const order = await Order.findById(orderId);
+// exports.updateOrderStatus = async (orderId, status) => {
+//   try {
+//     const order = await Order.findById(orderId);
     
-    if (!order) {
-      const error = new Error('Order not found');
-      error.statusCode = 404;
-      throw error;
-    }
+//     if (!order) {
+//       const error = new Error('Order not found');
+//       error.statusCode = 404;
+//       throw error;
+//     }
     
-    order.status = status;
-    order.updatedAt = Date.now();
+//     order.status = status;
+//     order.updatedAt = Date.now();
     
-    const updatedOrder = await order.save();
+//     const updatedOrder = await order.save();
     
-    // Send message to Kafka about order status update
-    await produceMessage('order-status', {
-      orderId,
-      userId: order.userId,
-      status,
-      timestamp: new Date().toISOString()
-    });
+//     // Send message to Kafka about order status update
+//     await produceMessage('order-status', {
+//       orderId,
+//       userId: order.userId,
+//       status,
+//       timestamp: new Date().toISOString()
+//     });
     
-    return updatedOrder;
-  } catch (error) {
-    console.error('Error updating order status:', error);
-    throw error;
-  }
-};
+//     return updatedOrder;
+//   } catch (error) {
+//     console.error('Error updating order status:', error);
+//     throw error;
+//   }
+// };
