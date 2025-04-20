@@ -1,21 +1,20 @@
 require("dotenv").config();
-const express = require("express");
-const userRoutes = require("./routes/userRoutes");
-const orderRoutes = require("./routes/orderRoutes");
-const { initKafkaProducer, initKafkaConsumer } = require("./services/kafkaService");
+const express = require('express');
+const orderRoutes = require('./routes/orderRoutes');
+const userRoutes = require('./routes/userRoutes');
+const { initKafkaProducer, initKafkaConsumer } = require('./services/kafkaService');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5003;
 
-// Middleware
 app.use(express.json());
 
-// Routes
-app.use("/users", userRoutes);
-app.use("/orders", orderRoutes);
+app.use('/orders', orderRoutes);
+app.use('/users', userRoutes);
 
-app.get("/", (req, res) => {
-  res.send("Connected to API Gateway");
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).send('API Gateway is healthy');
 });
 
 // Error handling middleware
@@ -24,22 +23,18 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke in the API Gateway!');
 });
 
-// Start server
+// Start server and initialize Kafka
 const startServer = async () => {
   try {
-    // Initialize Kafka Producer
     await initKafkaProducer();
-    console.log("Kafka Producer initialized");
-    
-    // Initialize Kafka Consumer to receive responses
+    console.log('Kafka Producer initialized');
     await initKafkaConsumer();
-    console.log("Kafka Consumer initialized");
-    
+    console.log('Kafka Consumer initialized');
     app.listen(PORT, () => {
       console.log(`API Gateway running on port ${PORT}`);
     });
   } catch (error) {
-    console.error("Failed to start API Gateway:", error);
+    console.error('Failed to start API Gateway:', error);
     process.exit(1);
   }
 };
@@ -47,7 +42,7 @@ const startServer = async () => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });
 
 startServer();
-
