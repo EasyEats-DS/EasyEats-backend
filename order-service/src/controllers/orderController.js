@@ -51,6 +51,45 @@ exports.getOrderById = async (orderId) => {
   }
 };
 
+// Get order by ID controller
+exports.getOrderById = async (req, res) => {
+  try {
+    const orderId = req.params.id;  // Get order ID from URL
+
+    // Validate ID presence
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID is required"
+      });
+    }
+
+    // Fetch order from MongoDB
+    const order = await Order.findById(orderId);
+
+    // If not found
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      order
+    });
+
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while retrieving order"
+    });
+  }
+};
+
 // exports.updateOrderStatus = async (orderId, status) => {
 //   try {
 //     const order = await Order.findById(orderId);
