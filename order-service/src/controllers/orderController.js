@@ -1,5 +1,6 @@
 const Order = require('../models/orderModel');
 const { produceMessage } = require('../services/kafkaService');
+const mongoose = require('mongoose');
 
 exports.createOrder = async (orderData) => {
   try {
@@ -35,41 +36,32 @@ exports.createOrder = async (orderData) => {
 };
 
 //Get order by ID controller
-exports.getOrderById = async (req, res) => {
+exports.getOrderById = async (orderId) => {
   try {
-    const orderId = req.params.id;  // Get order ID from URL
-
-    // Validate ID presence
+    // Validate order ID
     if (!orderId) {
-      return res.status(400).json({
-        success: false,
-        message: "Order ID is required"
-      });
+      const error = new Error('Order ID is required');
+      error.statusCode = 400;
+      throw error;
     }
-
-    // Fetch order from MongoDB
+    // Validate MongoDB ObjectID format
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      const error = new Error('Invalid order ID format');
+      error.statusCode = 400;
+      throw error;
+    }
     const order = await Order.findById(orderId);
-
-    // If not found
     if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found"
-      });
+      const error = new Error('Order not found');
+      error.statusCode = 404;
+      throw error;
     }
-
-    // Success response
-    return res.status(200).json({
-      success: true,
-      order
-    });
-
+    return { success: true, order };
   } catch (error) {
-    console.error("Error fetching order:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server error while retrieving order"
-    });
+    console.error('Error fetching order:', error);
+    const err = new Error(error.message || 'Server error while retrieving order');
+    err.statusCode = error.statusCode || 500;
+    throw err;
   }
 };
 
