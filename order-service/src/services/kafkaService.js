@@ -1,46 +1,44 @@
 const { Kafka } = require('kafkajs');
 
+// Initialize Kafka client
 const kafka = new Kafka({
   clientId: 'order-service',
-  brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
+  brokers: [process.env.KAFKA_BROKER || 'localhost:9092'],
+  retry: {
+    initialRetryTime: 100,
+    retries: 10
+  }
 });
 
 const producer = kafka.producer();
 const consumer = kafka.consumer({ groupId: 'order-service-group' });
 
-// Import controllers at the module level
 let orderController;
 
+// Connect Kafka producer
 const initKafkaProducer = async () => {
   await producer.connect();
 };
 
+// Connect Kafka consumer and subscribe to request topics
 const initKafkaConsumer = async () => {
-  // Avoid circular dependency by requiring controller here
   orderController = require('../controllers/orderController');
-  
   await consumer.connect();
-  
-  // Subscribe to request topics and inter-service communication
-  await consumer.subscribe({ 
-    topics: ['order-request', 'user-validation'], 
-    fromBeginning: false 
+  await consumer.subscribe({
+    topics: ['order-request', 'user-validation'],
+    fromBeginning: false
   });
-  
   await consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
       const messageValue = JSON.parse(message.value.toString());
       console.log(`Received message from topic ${topic}:`, messageValue);
-      
       if (topic === 'order-request') {
-        // Handle API gateway requests
         try {
           const { action, payload, correlationId } = messageValue;
-          
           let responseData;
           let success = true;
           let statusCode = 200;
-          
+          // Handle different API actions
           switch (action) {
             case 'createOrder':
               responseData = await orderController.createOrder(payload);
@@ -48,6 +46,9 @@ const initKafkaConsumer = async () => {
               break;
             case 'getOrder':
               responseData = await orderController.getOrderById(payload.id);
+              break;
+            case 'getAllOrders':
+              responseData = await orderController.getAllOrders(payload);
               break;
             case 'updateOrderStatus':
               responseData = await orderController.updateOrderStatus(payload.id, payload.status);
@@ -57,12 +58,11 @@ const initKafkaConsumer = async () => {
               responseData = { message: `Unknown action: ${action}` };
               statusCode = 400;
           }
-          
-          // Send response back to API gateway
+          // Send response to API Gateway
           await producer.send({
             topic: 'order-response',
             messages: [
-              { 
+              {
                 value: JSON.stringify({
                   correlationId,
                   success,
@@ -73,19 +73,20 @@ const initKafkaConsumer = async () => {
               }
             ]
           });
+          console.log(`Message sent to topic order-response`);
         } catch (error) {
           console.error('Error processing order request:', error);
-          
           // Send error response
           await producer.send({
             topic: 'order-response',
             messages: [
-              { 
+              {
                 value: JSON.stringify({
                   correlationId: messageValue.correlationId,
                   success: false,
-                  statusCode: 500,
-                  message: error.message,
+                  statusCode: error.statusCode || 500,
+                  message: error.message || 'Error processing order request',
+                  details: error.details,
                   timestamp: new Date().toISOString()
                 })
               }
@@ -93,18 +94,15 @@ const initKafkaConsumer = async () => {
           });
         }
       } else if (topic === 'user-validation') {
-        // Process user validation response
+        // Handle user validation response
         const { orderId, userId, isValid } = messageValue;
-        
         if (isValid) {
-          // Update order status to processing
           await orderController.updateOrderStatus(orderId, 'processing');
-          
-          // Send notification about the order status change
+          // Notify User Service of status update
           await producer.send({
             topic: 'order-status',
             messages: [
-              { 
+              {
                 value: JSON.stringify({
                   orderId,
                   userId,
@@ -120,6 +118,7 @@ const initKafkaConsumer = async () => {
   });
 };
 
+// Send message to Kafka topic
 const produceMessage = async (topic, message) => {
   try {
     await producer.send({

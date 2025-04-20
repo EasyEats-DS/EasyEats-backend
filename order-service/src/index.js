@@ -1,16 +1,15 @@
 require("dotenv").config();
-const express = require("express");
-const connectDB = require("./config/db");
-const { initKafkaProducer, initKafkaConsumer } = require("./services/kafkaService");
+const express = require('express');
+const { initKafkaProducer, initKafkaConsumer } = require('./services/kafkaService');
+const connectDB = require('./config/db');
 
 const app = express();
 const PORT = process.env.PORT || 5002;
 
-// Middleware
 app.use(express.json());
 
 // Health check endpoint
-app.get("/health", (req, res) => {
+app.get('/health', (req, res) => {
   res.status(200).send('Order Service is healthy');
 });
 
@@ -20,27 +19,20 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke in the Order Service!');
 });
 
-// Startup function
+// Start server and initialize MongoDB and Kafka
 const startServer = async () => {
   try {
-    // Connect to MongoDB
     await connectDB();
-    console.log("MongoDB connected successfully");
-    
-    // Initialize Kafka Producer
+    console.log('MongoDB connected successfully');
     await initKafkaProducer();
-    console.log("Kafka Producer initialized");
-    
-    // Initialize Kafka Consumer
+    console.log('Kafka Producer initialized');
     await initKafkaConsumer();
-    console.log("Kafka Consumer initialized");
-    
-    // Start Express server for health checks
+    console.log('Kafka Consumer initialized');
     app.listen(PORT, () => {
       console.log(`Order Service running on port ${PORT}`);
     });
   } catch (error) {
-    console.error("Failed to start Order Service:", error);
+    console.error('Failed to start Order Service:', error);
     process.exit(1);
   }
 };
