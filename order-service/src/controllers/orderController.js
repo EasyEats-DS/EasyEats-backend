@@ -34,24 +34,7 @@ exports.createOrder = async (orderData) => {
   }
 };
 
-exports.getOrderById = async (orderId) => {
-  try {
-    const order = await Order.findById(orderId);
-    
-    if (!order) {
-      const error = new Error('Order not found');
-      error.statusCode = 404;
-      throw error;
-    }
-    
-    return order;
-  } catch (error) {
-    console.error('Error fetching order:', error);
-    throw error;
-  }
-};
-
-// Get order by ID controller
+//Get order by ID controller
 exports.getOrderById = async (req, res) => {
   try {
     const orderId = req.params.id;  // Get order ID from URL
