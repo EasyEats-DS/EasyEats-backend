@@ -55,6 +55,9 @@ const initKafkaConsumer = async () => {
             case 'updateOrderStatus':
               responseData = await orderController.updateOrderStatus(payload.orderId, payload.status);
               break;
+            case 'updateOrder':
+              responseData = await orderController.updateOrder(payload.orderId, payload.orderData);
+              break;
             case 'deleteOrder':
               responseData = await orderController.deleteOrderById(payload.orderId);
               break;
