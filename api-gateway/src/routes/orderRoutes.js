@@ -36,14 +36,12 @@ router.get('/:id', async (req, res) => {
     // Send Kafka message to Order Service
     const orderResult = await sendMessageWithResponse('order-request', {
       action: 'getOrder',
-      payload: { id: req.params.id } // Pass order ID from URL
+      payload: { orderId: req.params.id } // Pass order ID from URL
     });
     return res.json(orderResult);
   } catch (error) {
     console.error('Error fetching order:', error.message);
-    return res.status(error.statusCode || 500).json({ 
-      message: error.message || 'Error fetching order' 
-    });
+    return res.status(err.statusCode || 500).json({ message: err.message });
   }
 });
 
