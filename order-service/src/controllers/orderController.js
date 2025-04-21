@@ -84,33 +84,39 @@ exports.getOrders = async (query) => {
 };
 
 
-
-// exports.updateOrderStatus = async (orderId, status) => {
-//   try {
-//     const order = await Order.findById(orderId);
-    
-//     if (!order) {
-//       const error = new Error('Order not found');
-//       error.statusCode = 404;
-//       throw error;
-//     }
-    
-//     order.status = status;
-//     order.updatedAt = Date.now();
-    
-//     const updatedOrder = await order.save();
-    
-//     // Send message to Kafka about order status update
-//     await produceMessage('order-status', {
-//       orderId,
-//       userId: order.userId,
-//       status,
-//       timestamp: new Date().toISOString()
-//     });
-    
-//     return updatedOrder;
-//   } catch (error) {
-//     console.error('Error updating order status:', error);
-//     throw error;
-//   }
-// };
+//Update the status of an order
+exports.updateOrderStatus = async (orderId, status) => {
+  try {
+    if (!orderId) {
+      const err = new Error('Order ID is required');
+      err.statusCode = 400;
+      throw err;
+    }
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      const err = new Error('Invalid order ID format');
+      err.statusCode = 400;
+      throw err;
+    }
+    const allowed = ['pending','processing','shipped','delivered','cancelled'];
+    if (!allowed.includes(status)) {
+      const err = new Error(`Invalid status: ${status}`);
+      err.statusCode = 400;
+      throw err;
+    }
+    const order = await Order.findById(orderId);
+    if (!order) {
+      const err = new Error('Order not found');
+      err.statusCode = 404;
+      throw err;
+    }
+    order.status = status;
+    order.updatedAt = Date.now();
+    const updated = await order.save();
+    // notify other services
+    await produceMessage('order-status', { orderId, userId: order.userId, status, timestamp: new Date().toISOString() });
+    return updated;
+  } catch (error) {
+    console.error('Error updating order status:', error);
+    throw error;
+  }
+};
