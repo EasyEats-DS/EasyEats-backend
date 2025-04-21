@@ -150,3 +150,56 @@ exports.deleteOrderById = async (orderId) => {
     throw error;
   }
 };
+
+// Update an order by its ID
+exports.updateOrder = async (orderId, orderData) => {
+  try {
+    // Validate orderId presence & format
+    if (!orderId) {
+      const err = new Error('Order ID is required');
+      err.statusCode = 400;
+      throw err;
+    }
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      const err = new Error('Invalid order ID format');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Validate required fields
+    const { products, totalAmount, status } = orderData;
+    if (!Array.isArray(products) || products.length === 0) {
+      const err = new Error('Products array is required');
+      err.statusCode = 400;
+      throw err;
+    }
+    if (typeof totalAmount !== 'number' || totalAmount <= 0) {
+      const err = new Error('Valid totalAmount is required');
+      err.statusCode = 400;
+      throw err;
+    }
+    // validate status
+    const allowed = ['pending','processing','shipped','delivered','cancelled'];
+    if (status && !allowed.includes(status)) {
+      const err = new Error(`Invalid status: ${status}`);
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Perform the update and return the new document
+    const updated = await Order.findByIdAndUpdate(
+      orderId,
+      { products, totalAmount, ...(status && { status }), updatedAt: Date.now() },
+      { new: true }
+    );
+    if (!updated) {
+      const err = new Error('Order not found');
+      err.statusCode = 404;
+      throw err;
+    }
+    return updated;
+  } catch (error) {
+    console.error('Error updating order:', error);
+    throw error;
+  }
+};
