@@ -60,4 +60,19 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Update order status
+router.put('/:id/status', async (req, res) => {
+  try {
+    const result = await sendMessageWithResponse('order-request', {
+      action: 'updateOrderStatus',
+      payload: { orderId: req.params.id, status: req.body.status },
+      correlationId: req.headers['x-correlation-id'] || Date.now().toString()
+    });
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(err.statusCode || 500).json({ message: err.message });
+  }
+});
+
+
 module.exports = router;
