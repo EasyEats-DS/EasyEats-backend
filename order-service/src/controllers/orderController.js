@@ -35,35 +35,22 @@ exports.createOrder = async (orderData) => {
   }
 };
 
-//Get order by ID controller
+// Get order by ID
 exports.getOrderById = async (orderId) => {
   try {
-    // Validate order ID
-    if (!orderId) {
-      const error = new Error('Order ID is required');
-      error.statusCode = 400;
-      throw error;
-    }
-    // Validate MongoDB ObjectID format
-    if (!mongoose.Types.ObjectId.isValid(orderId)) {
-      const error = new Error('Invalid order ID format');
-      error.statusCode = 400;
-      throw error;
-    }
     const order = await Order.findById(orderId);
     if (!order) {
       const error = new Error('Order not found');
       error.statusCode = 404;
       throw error;
     }
-    return { success: true, order };
+    return { order };
   } catch (error) {
     console.error('Error fetching order:', error);
-    const err = new Error(error.message || 'Server error while retrieving order');
-    err.statusCode = error.statusCode || 500;
-    throw err;
+    throw error;
   }
 };
+
 
 // exports.updateOrderStatus = async (orderId, status) => {
 //   try {
