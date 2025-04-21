@@ -83,7 +83,6 @@ exports.getOrders = async (query) => {
   }
 };
 
-
 //Update the status of an order
 exports.updateOrderStatus = async (orderId, status) => {
   try {
@@ -117,6 +116,37 @@ exports.updateOrderStatus = async (orderId, status) => {
     return updated;
   } catch (error) {
     console.error('Error updating order status:', error);
+    throw error;
+  }
+};
+
+// Delete an order by its ID
+exports.deleteOrderById = async (orderId) => {
+  try {
+    // Validate orderId presence & format
+    if (!orderId) {
+      const err = new Error('Order ID is required');
+      err.statusCode = 400;
+      throw err;
+    }
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      const err = new Error('Invalid order ID format');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Attempt deletion
+    const deleted = await Order.findByIdAndDelete(orderId);
+    if (!deleted) {
+      const err = new Error('Order not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    // Return confirmation
+    return { message: 'Order deleted successfully' };
+  } catch (error) {
+    console.error('Error deleting order:', error);
     throw error;
   }
 };
