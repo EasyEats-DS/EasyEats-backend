@@ -20,7 +20,7 @@ const initKafkaConsumer = async () => {
   await consumer.connect();
   
   // Subscribe to response topics from other services
-  await consumer.subscribe({ topics: ['user-response', 'order-response'], fromBeginning: false });
+  await consumer.subscribe({ topics: ['user-response', 'order-response','restaurant-response'], fromBeginning: false });
   
   await consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
