@@ -141,3 +141,28 @@ exports.updateMenuItem = async (restaurantId, menuItemId, updateData) => {
     throw error;
   }
 };
+
+exports.deleteRestaurantById = async (restaurantId) => {
+  try {
+    const restaurant = await Restaurant.findByIdAndDelete(restaurantId);
+    
+    if (!restaurant) {
+      const error = new Error('Restaurant not found');
+      error.statusCode = 404;
+      throw error;
+    }
+    
+    // Send message to Kafka about restaurant deletion
+    await produceMessage('restaurant-status', {
+      restaurantId: restaurant._id.toString(),
+      userId: restaurant.ownerId.toString(),
+      status: 'deleted',
+      timestamp: new Date().toISOString()
+    });
+    
+    return { message: 'Restaurant deleted successfully' };
+  } catch (error) {
+    console.error('Error deleting restaurant:', error);
+    throw error;
+  }
+};
