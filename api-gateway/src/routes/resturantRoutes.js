@@ -134,4 +134,21 @@ router.put('/:id/menu/:menuItemId', async (req, res) => {
   }
 });
 
+
+router.delete('/:id', async (req, res) => {
+  try {
+    const result = await sendMessageWithResponse('restaurant-request', {
+      action: 'deleteRestaurant',
+      payload: { id: req.params.id }
+    });
+    
+    return res.json(result);
+  } catch (error) {
+    console.error('Error deleting restaurant:', error.message);
+    return res.status(error.statusCode || 500).json({ 
+      message: error.message || 'Error deleting restaurant' 
+    });
+  }
+});
+
 module.exports = router;
