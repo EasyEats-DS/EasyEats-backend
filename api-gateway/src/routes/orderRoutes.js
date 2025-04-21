@@ -45,4 +45,19 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Get all orders with pagination
+router.get('/', async (req, res) => {
+  try {
+    const { page, limit } = req.query;
+    const result = await sendMessageWithResponse('order-request', {
+      action:  'getOrders',
+      payload: { page, limit }
+    });
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error('Error fetching orders:', err);
+    return res.status(err.statusCode || 500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
