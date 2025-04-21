@@ -74,6 +74,22 @@ router.put('/:id/status', async (req, res) => {
   }
 });
 
+// Update full order 
+router.put('/:id', async (req, res) => {
+  try {
+    const result = await sendMessageWithResponse('order-request', {
+      action: 'updateOrder',
+      payload: { orderId: req.params.id, orderData: req.body },
+      correlationId: req.headers['x-correlation-id'] || Date.now().toString()
+    });
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error('Error updating order:', err);
+    return res.status(err.statusCode || 500).json({ message: err.message });
+  }
+});
+
+
 // Delete an order by ID
 router.delete('/:id', async (req, res) => {
   try {
