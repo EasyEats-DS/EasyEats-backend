@@ -51,6 +51,39 @@ exports.getOrderById = async (orderId) => {
   }
 };
 
+// Get all orders with pagination (user‑service style)
+exports.getOrders = async (query) => {
+  try {
+    const page  = parseInt(query.page, 10) || 1;
+    const limit = parseInt(query.limit, 10) || 10;
+    const skip  = (page - 1) * limit;
+
+    const orders      = await Order.find().skip(skip).limit(limit).lean();
+    const totalOrders = await Order.countDocuments();
+
+    return {
+      success: true,
+      data: {
+        orders,
+        pagination: {
+          total:       totalOrders,
+          totalPages:  Math.ceil(totalOrders / limit),
+          currentPage: page,
+          limit
+        }
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    throw {
+      statusCode: 500,
+      message:    'Failed to fetch orders',
+      details:    error.message
+    };
+  }
+};
+
+
 
 // exports.updateOrderStatus = async (orderId, status) => {
 //   try {
