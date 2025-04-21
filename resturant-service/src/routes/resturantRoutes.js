@@ -16,5 +16,6 @@ router.put("/:id", updateRestaurant);
 router.get("/owner/:ownerId", getRestaurantsByOwner);
 router.post("/:id/menu", addMenuItem);
 router.put("/:id/menu/:menuItemId", updateMenuItem);
+router.delete("/:id", deleteRestaurantById);
 
 module.exports = router;
