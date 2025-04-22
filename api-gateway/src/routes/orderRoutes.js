@@ -104,4 +104,32 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Get orders by user ID
+router.get('/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Validate user existence 
+    const userResult = await sendMessageWithResponse('user-request', {
+      action: 'getUser',
+      payload: { userId }
+    });
+    if (!userResult.user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Fetch orders for that user
+    const ordersResult = await sendMessageWithResponse('order-request', {
+      action: 'getOrdersByUserId',
+      payload: { userId }
+    });
+
+    // Return the list of orders
+    return res.status(200).json(ordersResult);
+  } catch (err) {
+    console.error('Error fetching orders by userId:', err);
+    return res.status(err.statusCode || 500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
