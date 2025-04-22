@@ -203,3 +203,36 @@ exports.updateOrder = async (orderId, orderData) => {
     throw error;
   }
 };
+
+exports.getOrdersByUserId = async (userId) => {
+  try {
+    // Validate presence of userId
+    if (!userId) {
+      const err = new Error('User ID is required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Validate MongoDB ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      const err = new Error('Invalid user ID format');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Query orders by userId
+    const orders = await Order.find({ userId }).lean();
+
+    // If no orders exist, throw 404 
+    if (!orders.length) {
+      const err = new Error('No orders found for this user');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    return { orders };
+  } catch (error) {
+    console.error('Error fetching orders by userId:', error);
+    throw error;
+  }
+};
