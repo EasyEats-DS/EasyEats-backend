@@ -3,6 +3,7 @@ const express = require("express");
 const userRoutes = require("./routes/userRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const restaurantRoutes = require("./routes/resturantRoutes");
+const authRoutes = require("./routes/authRoutes");
 const { initKafkaProducer, initKafkaConsumer } = require("./services/kafkaService");
 
 const app = express();
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use("/users", userRoutes);
 app.use("/orders", orderRoutes);
 app.use("/restaurants", restaurantRoutes);
+app.use('/auth',authRoutes)
 
 
 app.get("/", (req, res) => {
