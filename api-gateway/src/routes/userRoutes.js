@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { sendMessageWithResponse } = require('../services/kafkaService');
+const verifyToken = require('../middlewares/authMiddleware');
 
 // Create a new user
 router.post('/', async (req, res) => {
@@ -19,8 +20,10 @@ router.post('/', async (req, res) => {
   }
 });
 
+
+
 // Get user by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id',verifyToken,async (req, res) => {
   try {
     const result = await sendMessageWithResponse('user-request', {
       action: 'getUser',
