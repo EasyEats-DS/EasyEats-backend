@@ -3,10 +3,18 @@ const bcrypt = require('bcrypt');
 
 exports.createUser = async (userData) => {
   try {
-    const { firstName, lastName, email, password, address } = userData;
+    const { firstName, lastName, email, password, address, role } = userData;
     
-    if (!firstName || !lastName || !email || !password) {
+    if (!firstName || !lastName || !email || !password || !role) {
       const error = new Error('First name, last name, email and password are required');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Validate role
+    const validRoles = ['ADMIN', 'RESTAURANT_OWNER', 'DELIVERY_PERSON'];
+    if (!validRoles.includes(role)) {
+      const error = new Error('Invalid user role');
       error.statusCode = 400;
       throw error;
     }
@@ -29,6 +37,7 @@ exports.createUser = async (userData) => {
       lastName,
       email,
       password: hashedPassword,
+      role,
       address: address ? {
         street: address.street || null,
         city: address.city || null,
