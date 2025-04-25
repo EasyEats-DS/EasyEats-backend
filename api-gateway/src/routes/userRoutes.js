@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { sendMessageWithResponse } = require('../services/kafkaService');
 const verifyToken = require('../middlewares/authMiddleware');
+const authorizeRoles = require('../middlewares/roleMiddleware'); 
 
 // Create a new user
 router.post('/', async (req, res) => {
@@ -23,7 +24,7 @@ router.post('/', async (req, res) => {
 
 
 // Get user by ID
-router.get('/:id',verifyToken,async (req, res) => {
+router.get('/:id',verifyToken, authorizeRoles('CUSTOMER'),async (req, res) => {
   try {
     const result = await sendMessageWithResponse('user-request', {
       action: 'getUser',
@@ -40,7 +41,7 @@ router.get('/:id',verifyToken,async (req, res) => {
 });
 
 // Get all users with pagination
-router.get('/', async (req, res) => {
+router.get('/', verifyToken,authorizeRoles('ADMIN') ,async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
