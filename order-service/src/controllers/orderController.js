@@ -27,6 +27,9 @@ exports.createOrder = async (orderData) => {
       action: 'validate',
       timestamp: new Date().toISOString()
     });
+    await produceMessage('order_placed',{
+      savedOrder
+    })
     
     return savedOrder;
   } catch (error) {

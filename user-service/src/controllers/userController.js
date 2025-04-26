@@ -3,7 +3,14 @@ const bcrypt = require('bcrypt');
 
 exports.createUser = async (userData) => {
   try {
-    const { firstName, lastName, email, password, address } = userData;
+    const { firstName, lastName, email, password, address, position } = userData;
+
+    console.log(typeof(position))
+
+    let location = [0, 0]; // Default location if not provided
+    location[0] = parseFloat(position.coordinates[0]);
+    location[1] = parseFloat(position.coordinates[1]);
+    console.log('Parsed position:', location);
     
     if (!firstName || !lastName || !email || !password) {
       const error = new Error('First name, last name, email and password are required');
@@ -35,8 +42,14 @@ exports.createUser = async (userData) => {
         state: address.state || null,
         zipCode: address.zipCode || null,
         country: address.country || null
-      } : undefined
+      } : undefined,
+      position: {
+        
+        coordinates: location
+      } 
     });
+
+    console.log('User object before save:', user);
     
     const savedUser = await user.save();
     
