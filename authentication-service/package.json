@@ -1,7 +1,6 @@
 {
-  "name": "api-gateway",
+  "name": "authentication-service",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -11,15 +10,15 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "type": "commonjs",
+  "description": "",
   "dependencies": {
-    "axios": "^1.9.0",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "kafka-node": "^5.0.0",
     "kafkajs": "^2.2.4",
     "mongoose": "^8.13.2",
-    "nodemon": "^3.1.9",
-    "uuid": "^9.0.0"
+    "nodemon": "^3.1.10"
   }
 }

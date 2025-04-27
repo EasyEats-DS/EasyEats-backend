@@ -5,13 +5,17 @@ const orderRoutes = require("./routes/orderRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 
+const restaurantRoutes = require("./routes/resturantRoutes");
+const authRoutes = require("./routes/authRoutes");
 const { initKafkaProducer, initKafkaConsumer } = require("./services/kafkaService");
+const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 5003;
 
 // Middleware
 app.use(express.json());
+app.use(cors());
 
 // Routes
 app.use("/users", userRoutes);
@@ -23,6 +27,9 @@ app.use("/notifications", notificationRoutes);
 app.get("/health", (req, res) => {
   res.status(200).send('API Gateway is healthy');
 });
+app.use("/restaurants", restaurantRoutes);
+app.use('/auth',authRoutes)
+
 
 app.get("/", (req, res) => {
   res.send("Connected to API Gateway");

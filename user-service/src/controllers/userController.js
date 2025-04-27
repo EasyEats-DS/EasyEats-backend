@@ -1,11 +1,20 @@
 const User = require('../models/userModel');
+const bcrypt = require('bcrypt');
 
 exports.createUser = async (userData) => {
   try {
-    const { name, email, address } = userData;
+    const { firstName, lastName, email, password, address, role } = userData;
     
-    if (!name || !email) {
-      const error = new Error('Name and email are required');
+    if (!firstName || !lastName || !email || !password || !role) {
+      const error = new Error('First name, last name, email and password are required');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Validate role
+    const validRoles = ['ADMIN', 'RESTAURANT_OWNER', 'DELIVERY_PERSON'];
+    if (!validRoles.includes(role)) {
+      const error = new Error('Invalid user role');
       error.statusCode = 400;
       throw error;
     }
@@ -19,11 +28,17 @@ exports.createUser = async (userData) => {
       throw error;
     }
     
-    // Create new user with address (if provided)
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+    
+    // Create new user
     const user = new User({
-      name,
+      firstName,
+      lastName,
       email,
-      address: address ? {  // Only include address if provided
+      password: hashedPassword,
+      role,
+      address: address ? {
         street: address.street || null,
         city: address.city || null,
         state: address.state || null,
@@ -33,24 +48,29 @@ exports.createUser = async (userData) => {
     });
     
     const savedUser = await user.save();
-    // console.log('User saved successfully:', savedUser);
-
+    
     // Verify the user was actually saved
     const verifiedUser = await User.findById(savedUser._id);
     if (!verifiedUser) {
       console.error('User was not found in DB after save:', savedUser._id);
       throw new Error('Failed to persist user in database');
     }
-    return savedUser;
+    
+    // Don't return password in the response
+    const userResponse = savedUser.toObject();
+    delete userResponse.password;
+    
+    return userResponse;
   } catch (error) {
     console.error('Error creating user:', error);
     throw error;
   }
 };
 
+
 exports.getUserById = async (userId) => {
   try {
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('-password');
     
     if (!user) {
       const error = new Error('User not found');
@@ -80,13 +100,14 @@ exports.deleteUserById = async (userId) => {
     console.error('Error deleting user:', error);
     throw error;
   }
-}
+};
+
 exports.updateUserById = async (userId, userData) => {
   try {
-    const { name, email, address } = userData;
+    const { firstName, lastName, email, password, address } = userData;
     
-    if (!name || !email) {
-      const error = new Error('Name and email are required');
+    if (!firstName || !lastName || !email) {
+      const error = new Error('First name, last name and email are required');
       error.statusCode = 400;
       throw error;
     }
@@ -100,8 +121,27 @@ exports.updateUserById = async (userId, userData) => {
       throw error;
     }
     
+    // Prepare update data
+    const updateData = {
+      firstName,
+      lastName,
+      email,
+      address: address ? {
+        street: address.street || null,
+        city: address.city || null,
+        state: address.state || null,
+        zipCode: address.zipCode || null,
+        country: address.country || null
+      } : undefined
+    };
+    
+    // Update password if provided
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 12);
+    }
+    
     // Update user
-    const updatedUser = await User.findByIdAndUpdate(userId, userData, { new: true });
+    const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true }).select('-password');
     
     if (!updatedUser) {
       const error = new Error('User not found');
@@ -115,13 +155,14 @@ exports.updateUserById = async (userId, userData) => {
     throw error;
   }
 };
+
 exports.getUsers = async (query) => {
   try {
     const page = parseInt(query.page) || 1;
     const limit = parseInt(query.limit) || 10;
     const skip = (page - 1) * limit;
     
-    const users = await User.find().skip(skip).limit(limit).lean();
+    const users = await User.find().select('-password').skip(skip).limit(limit).lean();
     const totalUsers = await User.countDocuments();
     
     return {

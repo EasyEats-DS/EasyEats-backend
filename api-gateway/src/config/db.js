@@ -1,3 +1,4 @@
+// authentication-service/config/db.js
 const mongoose = require("mongoose");
 require("dotenv").config();
 
@@ -15,7 +16,7 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 5000,
       retryWrites: true
     });
-    console.log("Restaurant Service connected to MongoDB");
+    console.log("Service connected to MongoDB");
     console.log("Connected to database:", mongoose.connection.db.databaseName); 
   } catch (error) {
     console.error("MongoDB connection error:", error);
