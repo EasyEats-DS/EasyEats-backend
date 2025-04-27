@@ -25,6 +25,10 @@ const RestaurantSchema = new mongoose.Schema({
     email: String,
     website: String
   },
+  ResturantCoverImageUrl: {
+    type: String,
+    default: "https://res.cloudinary.com/denqj4zdy/image/upload/v1745770799/04_Fenchurch-Interior_2024_4548_2-3840x2160_eno1kw.jpg"
+  },
   menu: [
     {
       name: {
