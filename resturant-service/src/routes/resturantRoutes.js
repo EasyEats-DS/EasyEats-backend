@@ -12,7 +12,7 @@ const {
 } = require("../controllers/resturantController");
 
 const router = express.Router();
-
+router.get("/", getAllRestaurants);
 router.post("/", createRestaurant);
 router.get("/:id", getRestaurantById);
 router.put("/:id", updateRestaurant);
