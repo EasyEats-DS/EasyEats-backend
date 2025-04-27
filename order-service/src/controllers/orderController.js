@@ -66,7 +66,7 @@ exports.getOrders = async (query) => {
       data: {
         orders,
         pagination: {
-          total:       totalOrders,
+          total: totalOrders,
           totalPages:  Math.ceil(totalOrders / limit),
           currentPage: page,
           limit
@@ -77,8 +77,8 @@ exports.getOrders = async (query) => {
     console.error('Error fetching orders:', error);
     throw {
       statusCode: 500,
-      message:    'Failed to fetch orders',
-      details:    error.message
+      message: 'Failed to fetch orders',
+      details: error.message
     };
   }
 };
