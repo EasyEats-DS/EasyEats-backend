@@ -4,15 +4,16 @@ const mongoose = require('mongoose');
 
 exports.createOrder = async (orderData) => {
   try {
-    const { userId, products, totalAmount } = orderData;
+    const { userId, products, totalAmount , restaurantId } = orderData;
     
-    if (!userId || !products || !totalAmount) {
+    if (!userId || !products || !totalAmount || !restaurantId) {
       throw new Error('Missing required fields');
     }
     
     // Create a new order
     const newOrder = new Order({
       userId,
+      restaurantId,
       products,
       totalAmount,
       status: 'pending'
@@ -27,7 +28,10 @@ exports.createOrder = async (orderData) => {
       action: 'validate',
       timestamp: new Date().toISOString()
     });
-    
+     // console.log('Order created:', savedOrder);
+    // await produceMessage('order_placed',
+    //   savedOrder
+    // )
     return savedOrder;
   } catch (error) {
     console.error('Error creating order:', error);

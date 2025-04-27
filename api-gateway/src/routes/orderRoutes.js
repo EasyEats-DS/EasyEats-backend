@@ -10,7 +10,7 @@ router.post('/', async (req, res) => {
       action: 'getUser',
       payload: { userId: req.body.userId }
     });
-    
+    console.log('User validation result:', userValidation);
     if (!userValidation.user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -20,6 +20,12 @@ router.post('/', async (req, res) => {
       action: 'createOrder',
       payload: req.body
     });
+  
+    const createDelivery =  await sendMessageWithResponse('order_placed',{
+      payload: orderResult,
+    });
+
+    console.log('Delivery created:', createDelivery);
     
     return res.status(201).json(orderResult);
   } catch (error) {

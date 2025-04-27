@@ -5,11 +5,12 @@ const {
   updateRestaurant,
   getRestaurantsByOwner,
   addMenuItem,
-  updateMenuItem
+  updateMenuItem,
+  getAllRestaurants
 } = require("../controllers/resturantController");
 
 const router = express.Router();
-
+router.get("/", getAllRestaurants);
 router.post("/", createRestaurant);
 router.get("/:id", getRestaurantById);
 router.put("/:id", updateRestaurant);
