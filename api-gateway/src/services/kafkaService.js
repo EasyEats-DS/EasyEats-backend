@@ -19,8 +19,11 @@ const initKafkaProducer = async () => {
 const initKafkaConsumer = async () => {
   await consumer.connect();
   
-  // Subscribe to response topics from other services
-  await consumer.subscribe({ topics: ['user-response', 'order-response'], fromBeginning: false });
+  // Subscribe to response topics from all services
+  await consumer.subscribe({ 
+    topics: ['user-response', 'order-response', 'payment-response', 'notification-response'], 
+    fromBeginning: false 
+  });
   
   await consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
@@ -49,41 +52,46 @@ const initKafkaConsumer = async () => {
   });
 };
 
-const sendMessageWithResponse = async (topic, message, timeoutMs = 5000) => {
+const sendMessageWithResponse = async (topic, message, timeoutMs = 15000) => {
   const correlationId = uuidv4();
   
-  // Create a promise that will be resolved when we get a response
-  const responsePromise = new Promise((resolve, reject) => {
-    // Set a timeout to reject the promise if we don't get a response
-    const timer = setTimeout(() => {
-      if (pendingRequests.has(correlationId)) {
-        pendingRequests.delete(correlationId);
-        reject(new Error(`Request to ${topic} timed out after ${timeoutMs}ms`));
-      }
-    }, timeoutMs);
+  try {
+    // Create a promise that will be resolved when we get a response
+    const responsePromise = new Promise((resolve, reject) => {
+      // Set a timeout to reject the promise if we don't get a response
+      const timer = setTimeout(() => {
+        if (pendingRequests.has(correlationId)) {
+          pendingRequests.delete(correlationId);
+          reject(new Error(`Request to ${topic} timed out after ${timeoutMs}ms`));
+        }
+      }, timeoutMs);
+      
+      // Store the callbacks to resolve/reject the promise later
+      pendingRequests.set(correlationId, { resolve, reject, timer });
+    });
     
-    // Store the callbacks to resolve/reject the promise later
-    pendingRequests.set(correlationId, { resolve, reject, timer });
-  });
-  
-  // Send the message
-  await producer.send({
-    topic,
-    messages: [
-      { 
-        value: JSON.stringify({
-          ...message,
-          correlationId,
-          timestamp: new Date().toISOString()
-        })
-      }
-    ]
-  });
-  
-  console.log(`Message sent to topic ${topic} with correlationId ${correlationId}`);
-  
-  // Return the promise that will be resolved when we get a response
-  return responsePromise;
+    // Send the message
+    await producer.send({
+      topic,
+      messages: [
+        { 
+          value: JSON.stringify({
+            ...message,
+            correlationId,
+            timestamp: new Date().toISOString()
+          })
+        }
+      ]
+    });
+    
+    console.log(`Message sent to topic ${topic} with correlationId ${correlationId}`);
+    
+    // Return the promise that will be resolved when we get a response
+    return responsePromise;
+  } catch (error) {
+    console.error(`Error sending message to ${topic}:`, error);
+    throw error;
+  }
 };
 
 module.exports = {

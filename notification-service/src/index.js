@@ -1,55 +1,51 @@
 require("dotenv").config();
 const express = require("express");
-const userRoutes = require("./routes/userRoutes");
-const orderRoutes = require("./routes/orderRoutes");
-const paymentRoutes = require("./routes/paymentRoutes");
+const connectDB = require("./config/db");
+const { initKafkaProducer, initKafkaConsumer } = require("./services/kafkaService");
 const notificationRoutes = require("./routes/notificationRoutes");
 
-const { initKafkaProducer, initKafkaConsumer } = require("./services/kafkaService");
-
 const app = express();
-const PORT = process.env.PORT || 5003;
+const PORT = process.env.PORT || 5004;
 
 // Middleware
 app.use(express.json());
 
 // Routes
-app.use("/users", userRoutes);
-app.use("/orders", orderRoutes);
-app.use("/payments", paymentRoutes);
 app.use("/notifications", notificationRoutes);
 
 // Health check endpoint
 app.get("/health", (req, res) => {
-  res.status(200).send('API Gateway is healthy');
-});
-
-app.get("/", (req, res) => {
-  res.send("Connected to API Gateway");
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).send('Something broke in the API Gateway!');
+  res.status(500).send('Something broke in the Notification Service!');
 });
 
-// Start server
+// Startup function
 const startServer = async () => {
   try {
-    // Initialize Kafka Producer
+    // Connect to MongoDB
+    await connectDB();
+    console.log("MongoDB connected successfully");
+    
+    // Initialize Kafka
     await initKafkaProducer();
     console.log("Kafka Producer initialized");
-    
-    // Initialize Kafka Consumer to receive responses
     await initKafkaConsumer();
     console.log("Kafka Consumer initialized");
     
+    // Start Express server
     app.listen(PORT, () => {
-      console.log(`API Gateway running on port ${PORT}`);
+      console.log(`Notification Service running on port ${PORT}`);
     });
   } catch (error) {
-    console.error("Failed to start API Gateway:", error);
+    console.error("Failed to start Notification Service:", error);
     process.exit(1);
   }
 };
@@ -60,4 +56,3 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 startServer();
-
