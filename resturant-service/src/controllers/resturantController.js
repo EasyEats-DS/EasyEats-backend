@@ -166,3 +166,40 @@ exports.deleteRestaurantById = async (restaurantId) => {
     throw error;
   }
 };
+
+exports.getAllRestaurants = async () => {
+  try {
+    const restaurants = await Restaurant.find({})
+      .populate('ownerId', 'name email')
+      .select('-menu -createdAt -updatedAt -__v');
+    
+    return restaurants;
+  } catch (error) {
+    console.error('Error fetching all restaurants:', error);
+    throw error;
+  }
+};
+
+// Fetch all menu items for a specific restaurant by ID
+exports.getRestaurantMenu = async (restaurantId) => {
+  try {
+    const restaurant = await Restaurant.findById(restaurantId)
+      .select('menu name _id');
+    
+    if (!restaurant) {
+      const error = new Error('Restaurant not found');
+      error.statusCode = 404;
+      throw error;
+    }
+    
+    return {
+      restaurantId: restaurant._id,
+      restaurantName: restaurant.name,
+      menu: restaurant.menu
+    };
+  } catch (error) {
+    console.error('Error fetching restaurant menu:', error);
+    throw error;
+  }
+};
+
