@@ -5,6 +5,9 @@ const orderRoutes = require("./routes/orderRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 
+const deliveryRoutes = require("./routes/deliveryRoutes");
+
+
 const restaurantRoutes = require("./routes/resturantRoutes");
 const authRoutes = require("./routes/authRoutes");
 const { initKafkaProducer, initKafkaConsumer } = require("./services/kafkaService");
@@ -22,6 +25,9 @@ app.use("/users", userRoutes);
 app.use("/orders", orderRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/notifications", notificationRoutes);
+
+app.use("/deliveries", deliveryRoutes);
+
 
 // Health check endpoint
 app.get("/health", (req, res) => {

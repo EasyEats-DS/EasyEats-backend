@@ -5,6 +5,7 @@ const User = require('../models/userModel');
 exports.login = async (loginData) => {
   try {
     const { email, password } = loginData;
+    console.log('Login data:', loginData);
 
     if (!email || !password) {
       const error = new Error('Email and password are required');
@@ -13,7 +14,7 @@ exports.login = async (loginData) => {
     }
 
     // Find user with password
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email })//.select('+password');
 
     if (!user) {
       const error = new Error('Invalid credentials');
