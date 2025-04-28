@@ -96,6 +96,7 @@ const handleAcceptOrder = async (io, socket, { driver, order }) => {
         status: 'assigned',
         createdAt: new Date()
       });
+      console.log("delivery created",f.data);
       // await Delivery.create({
       //   orderId: order.orderId,
       //   dropoffLocation: order.dropoff,

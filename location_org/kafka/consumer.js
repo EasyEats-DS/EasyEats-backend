@@ -40,11 +40,15 @@ class OrderConsumer {
       if (topic === 'order_placed') {
         console.log('Processing order placed:', payload);
         await this.processOrderPlaced(io, payload);
+        this.kafkaService.produceMessage('order-response', payload, correlationId); // Send response back to the topic
       } else if (topic === 'delivery-request') {
         if(action == 'createDelivery'){
 
           console.log('creating delivery request:', payload);
-          await createDelivery(payload)
+          const res = await createDelivery(payload);
+          console.log('Delivery data________:', res);
+          const topic = message.replyTo || 'delivery-response';
+          this.kafkaService.produceMessage(topic ,res,correlationId);
         }
         else if(action == 'getDeliveriesByCusId'){
           console.log('Fetching deliveries by customer ID:', payload);
@@ -59,6 +63,7 @@ class OrderConsumer {
           const res = await updateDeliveryStatus(payload.deliveryId,payload.status);
           console.log('Delivery data for driver:', res);
           const topic = payload.replyTo || 'delivery-response';
+          console.log('11111111111:', res);
           this.kafkaService.produceMessage(topic ,res,correlationId); // Send response back to the topic
         }
         else{
@@ -92,6 +97,7 @@ class OrderConsumer {
       
       // Notify drivers about the new order
       await this.notifyDrivers(io, enrichedOrder);
+
     } catch (error) {
       console.error('Error processing order placed:', error);
     }
