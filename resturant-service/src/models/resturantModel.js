@@ -44,7 +44,8 @@ const RestaurantSchema = new mongoose.Schema({
       isAvailable: {
         type: Boolean,
         default: true
-      }
+      },
+      imageUrl: { type: String }
     }
   ],
   ownerId: {
