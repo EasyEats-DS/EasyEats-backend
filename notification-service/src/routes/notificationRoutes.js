@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const notificationController = require('../controllers/notificationController');
 const Notification = require('../models/notificationModel');
 const emailService = require('../services/emailService');
 const smsService = require('../services/smsService');
@@ -241,6 +242,53 @@ router.get('/history/:orderId', async (req, res) => {
         res.status(500).json({
             error: 'Failed to fetch notifications',
             details: error.message
+        });
+    }
+});
+
+// Mark notification as read
+router.patch('/:notificationId/read', async (req, res, next) => {
+    try {
+        const { notificationId } = req.params;
+        const result = await notificationController.markNotificationAsRead(notificationId);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.patch('/user/:userId/read-all', async (req, res, next) => {
+    try {
+        const { userId } = req.params;
+        const result = await notificationController.markAllNotificationsAsRead(userId);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Delete notification
+router.delete('/:id', async (req, res) => {
+    try {
+        const notification = await Notification.findByIdAndDelete(req.params.id);
+        
+        if (!notification) {
+            return res.status(404).json({
+                success: false,
+                message: 'Notification not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Notification deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting notification:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete notification',
+            message: error.message
         });
     }
 });

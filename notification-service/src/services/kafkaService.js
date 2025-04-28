@@ -4,7 +4,8 @@ const {
   sendDeliveryUpdate, 
   getNotificationHistory,
   getNotificationsByStatus,
-  getNotificationsByUser
+  getNotificationsByUser,
+  deleteNotification
 } = require('../controllers/notificationController');
 
 const kafka = new Kafka({
@@ -22,10 +23,15 @@ const initKafkaConsumer = async () => {
 
     await consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
+        let parsedMessage;
         try {
-          const messageValue = JSON.parse(message.value.toString());
-          console.log(`Received message from topic ${topic}:`, messageValue);
-          const { action, payload, correlationId } = messageValue;
+          parsedMessage = JSON.parse(message.value.toString());
+          console.log(`Received message from topic ${topic}:`, parsedMessage);
+          
+          const { action, payload, correlationId } = parsedMessage;
+          if (!action || !correlationId) {
+            throw new Error('Invalid message format: missing action or correlationId');
+          }
 
           let responseData;
           let success = true;
@@ -47,13 +53,15 @@ const initKafkaConsumer = async () => {
             case 'getNotificationsByUser':
               responseData = await getNotificationsByUser(payload);
               break;
+            case 'deleteNotification':
+              responseData = await deleteNotification(payload.notificationId);
+              break;
             default:
               success = false;
               statusCode = 400;
               responseData = { message: `Unknown action: ${action}` };
           }
 
-          // Send response back through Kafka
           await producer.send({
             topic: 'notification-response',
             messages: [{
@@ -72,7 +80,7 @@ const initKafkaConsumer = async () => {
             topic: 'notification-response',
             messages: [{
               value: JSON.stringify({
-                correlationId: messageValue.correlationId,
+                correlationId: parsedMessage?.correlationId,
                 success: false,
                 statusCode: error.statusCode || 500,
                 message: error.message || 'Internal server error',

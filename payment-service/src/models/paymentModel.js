@@ -42,7 +42,7 @@ const paymentSchema = new mongoose.Schema({
       'canceled',
       'failed'
     ],
-    default: 'requires_payment_method'
+    default: 'Pending'
   },
   paymentMethod: {
     type: String,

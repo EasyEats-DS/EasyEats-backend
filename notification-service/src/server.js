@@ -5,7 +5,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5004;
+const PORT = process.env.PORT || 5005;
 
 // Middleware
 app.use(cors());

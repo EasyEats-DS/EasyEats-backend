@@ -177,3 +177,70 @@ exports.getNotificationsByUser = async (payload) => {
     throw error;
   }
 };
+
+exports.deleteNotification = async (notificationId) => {
+  try {
+    const notification = await NotificationModel.findByIdAndDelete(notificationId);
+    
+    if (!notification) {
+      const error = new Error('Notification not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    return { 
+      success: true,
+      message: 'Notification deleted successfully'
+    };
+  } catch (error) {
+    console.error('Error in deleteNotification:', error);
+    error.statusCode = error.statusCode || 500;
+    throw error;
+  }
+};
+
+exports.markNotificationAsRead = async (notificationId) => {
+  try {
+    const notification = await NotificationModel.findByIdAndUpdate(
+      notificationId,
+      { status: 'READ', readAt: new Date() },
+      { new: true }
+    );
+
+    if (!notification) {
+      const error = new Error('Notification not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    return {
+      success: true,
+      notification
+    };
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    error.statusCode = error.statusCode || 500;
+    throw error;
+  }
+};
+
+exports.markAllNotificationsAsRead = async (userId) => {
+  try {
+    const result = await NotificationModel.updateMany(
+      { userId, status: { $ne: 'READ' } },
+      { 
+        status: 'READ',
+        readAt: new Date()
+      }
+    );
+
+    return {
+      success: true,
+      modifiedCount: result.modifiedCount
+    };
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error);
+    error.statusCode = 500;
+    throw error;
+  }
+};

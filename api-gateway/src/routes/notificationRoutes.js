@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { sendMessageWithResponse } = require('../services/kafkaService');
 
+// All routes will use sendMessageWithResponse to communicate with notification service on port 5005
+// The client will call these routes through the API gateway on port 5003
+
 // Send order confirmation notification
 router.post('/order-confirmation', async (req, res) => {
   try {
@@ -119,6 +122,46 @@ router.get('/user/:userId', async (req, res) => {
     return res.status(error.statusCode || 500).json({ 
       success: false,
       message: error.message || 'Error fetching user notifications' 
+    });
+  }
+});
+
+// Mark notification as read
+router.patch('/:id/read', async (req, res) => {
+  try {
+    const result = await sendMessageWithResponse('notification-request', {
+      action: 'markAsRead',
+      payload: { 
+        notificationId: req.params.id
+      }
+    }, 15000);
+    
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Error marking notification as read:', error.message);
+    return res.status(error.statusCode || 500).json({ 
+      success: false,
+      message: error.message || 'Error marking notification as read' 
+    });
+  }
+});
+
+// Delete notification
+router.delete('/:id', async (req, res) => {
+  try {
+    const result = await sendMessageWithResponse('notification-request', {
+      action: 'deleteNotification',
+      payload: { 
+        notificationId: req.params.id
+      }
+    }, 15000);
+    
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Error deleting notification:', error.message);
+    return res.status(error.statusCode || 500).json({ 
+      success: false,
+      message: error.message || 'Error deleting notification' 
     });
   }
 });
