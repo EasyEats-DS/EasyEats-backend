@@ -203,3 +203,33 @@ exports.getRestaurantMenu = async (restaurantId) => {
   }
 };
 
+exports.deleteMenuItem = async (restaurantId, menuItemId) => {
+  try {
+    const restaurant = await Restaurant.findById(restaurantId);
+    
+    if (!restaurant) {
+      const error = new Error('Restaurant not found');
+      error.statusCode = 404;
+      throw error;
+    }
+    
+    const menuItemIndex = restaurant.menu.findIndex(item => item._id.toString() === menuItemId);
+    if (menuItemIndex === -1) {
+      const error = new Error('Menu item not found');
+      error.statusCode = 404;
+      throw error;
+    }
+    
+    restaurant.menu.splice(menuItemIndex, 1);
+    restaurant.updatedAt = Date.now();
+    
+    const updatedRestaurant = await restaurant.save();
+    await updatedRestaurant.populate('ownerId', 'name email');
+    
+    return updatedRestaurant;
+  } catch (error) {
+    console.error('Error deleting menu item:', error);
+    throw error;
+  }
+};
+
