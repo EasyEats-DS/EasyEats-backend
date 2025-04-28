@@ -28,6 +28,7 @@ router.post('/', async (req, res) => {
   try {
     const deliveryResult = await sendMessageWithResponse('delivery-request', {
       action: 'createDelivery',
+      replyTo: 'delivery-response',
       payload: req.body
     });
     
