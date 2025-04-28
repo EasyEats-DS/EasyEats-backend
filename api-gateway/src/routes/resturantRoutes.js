@@ -2,6 +2,21 @@ const express = require('express');
 const router = express.Router();
 const { sendMessageWithResponse } = require('../services/kafkaService');
 
+router.get('/', async (req, res) => {
+  try {
+    const restaurantsResult = await sendMessageWithResponse('restaurant-request', {
+      action: 'getAllRestaurants',
+      payload: {}
+    });
+    
+    return res.json(restaurantsResult);
+  } catch (error) {
+    console.error('Error fetching restaurants:', error.message);
+    return res.status(error.statusCode || 500).json({ 
+      message: error.message || 'Error fetching restaurants' 
+    });
+  }
+});
 // Create a new restaurant
 router.post('/', async (req, res) => {
   try {
@@ -10,6 +25,7 @@ router.post('/', async (req, res) => {
       action: 'getUser',
       payload: { userId: req.body.ownerId }
     });
+    console.log('Owner validation result:', ownerValidation);
     
     if (!ownerValidation.user) {
       return res.status(404).json({ message: 'Owner not found' });

@@ -29,6 +29,16 @@ const UserSchema = new mongoose.Schema({
     required: true,
     // default: 'DELIVERY_PERSON' 
   },
+  position: {
+    type: {
+      type: String,
+      default: 'Point'
+    },
+    coordinates: {
+      type: [Number],  // [longitude, latitude]
+      required: true
+    }
+  },
   address: {
     street: String,
     city: String,
@@ -39,7 +49,12 @@ const UserSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  lastUpdated: {
+    type: Date,
+    default: Date.now
   }
 });
-
+// 🗺️ Add the 2dsphere index for geospatial queries
+UserSchema.index({ position: '2dsphere' });
 module.exports = mongoose.model('User', UserSchema);

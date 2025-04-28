@@ -42,6 +42,15 @@ const initKafkaConsumer = async () => {
           let statusCode = 200;
           
           switch (action) {
+            case 'updateUserLocation':
+              responseData = await userController.updateLocation(payload.location, payload.customerId);
+              break;
+            case 'login':
+              responseData = await userController.login(payload.email, payload.password);
+              break;
+            case 'getNearbyDrivers':
+              responseData = await userController.getNearbyDrivers(payload);
+              break;
             case 'createUser':
               responseData = await userController.createUser(payload);
               statusCode = 201;
@@ -67,7 +76,7 @@ const initKafkaConsumer = async () => {
           
           // Send response back to API gateway
           await producer.send({
-            topic: 'user-response',
+            topic: messageValue.replyTo || 'user-response', // <-- prioritize replyTo if available
             messages: [
               { 
                 value: JSON.stringify({
