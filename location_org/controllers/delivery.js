@@ -33,6 +33,20 @@ exports.createDelivery = async (delivery) => {
   }
 }
 
+exports.deleteDeliveryById = async (deliveryId) => {
+  console.log("delivery controller deleteDeliveryById called"); // Debugging line
+  try {
+    const deletedDelivery = await Delivery.findByIdAndDelete(deliveryId);
+    if (!deletedDelivery) {
+      throw new Error('Delivery not found');
+    }
+    return deletedDelivery;
+  } catch (err) {
+    console.error("Error deleting delivery:", err.message);
+    throw new Error('Server error');
+  }
+}
+
 exports.getDeliveryById = async (deliveryId) => {
   try {
     const delivery = await Delivery.findById(deliveryId).populate('driverId').populate('customerId').populate('restaurantId');
@@ -232,4 +246,6 @@ exports.getDeliveryByCustomerId = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 }
+
+
 

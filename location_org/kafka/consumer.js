@@ -4,7 +4,7 @@ const CustomerService = require('../controllers/Customer');
 const { getSocketMaps } = require('../services/socketService');
 const DriverService = require('../controllers/Driver');
 const axios = require('axios');
-const { getDeliveryByDriverId, createDelivery, getDeliveryByCusId, updateDeliveryStatus } = require('../controllers/delivery');
+const { getDeliveryByDriverId, createDelivery, getDeliveryByCusId, updateDeliveryStatus,deleteDeliveryById } = require('../controllers/delivery');
 
 class OrderConsumer {
   constructor() {
@@ -42,6 +42,12 @@ class OrderConsumer {
         await this.processOrderPlaced(io, payload);
         this.kafkaService.produceMessage('order-response', payload, correlationId); // Send response back to the topic
       } else if (topic === 'delivery-request') {
+        if(action == 'deleteDelivery'){
+          console.log('Deleting delivery request:', payload);
+          const res = await deleteDeliveryById(payload.deliveryId);
+          console.log('Delivery data________:', res);
+          this.kafkaService.produceMessage('delivery-response' ,res,correlationId); // Send response back to the topic
+        }
         if(action == 'createDelivery'){
 
           console.log('creating delivery request:', payload);

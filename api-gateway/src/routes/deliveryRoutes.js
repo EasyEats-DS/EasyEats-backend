@@ -2,6 +2,23 @@ const express = require('express');
 const router = express.Router();
 const { sendMessageWithResponse } = require('../services/kafkaService');
 
+router.delete('/:deliveryId', async (req, res) => {
+  console.log("delete delivery________________________",req.params.deliveryId);
+  try {
+    const deliveryResult = await sendMessageWithResponse('delivery-request', {
+      action: 'deleteDelivery',
+      replyTo: 'delivery-response',
+      payload: { deliveryId: req.params.deliveryId }
+    });
+    return res.status(200).json(deliveryResult);
+  } catch (error) {
+    console.error('Error deleting delivery:', error.message);
+    return res.status(500).json({ 
+      message: error.message || 'Error deleting delivery' 
+    });
+  }
+})
+
 router.patch('/:deliveryId/status', async (req, res) => {
   console.log("update delivery status________________________",req.body, req.params.deliveryId);
 
