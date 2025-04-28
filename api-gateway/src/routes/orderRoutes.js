@@ -54,6 +54,20 @@ router.post("/", async (req, res) => {
   }
 });
 
+// Get all orders
+router.get("/all", async (req, res) => {
+  try {
+    const result = await sendMessageWithResponse("order-request", {
+      action:  "getAllOrders",
+      payload: {}
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("Error fetching all orders:", error);
+    return res.status(error.statusCode || 500).json({ message: error.message });
+  }
+});
+
 // Get order by ID
 router.get("/:id", async (req, res) => {
   try {
