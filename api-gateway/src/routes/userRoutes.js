@@ -3,6 +3,50 @@ const router = express.Router();
 const { sendMessageWithResponse } = require('../services/kafkaService');
 const verifyToken = require('../middlewares/authMiddleware');
 const authorizeRoles = require('../middlewares/roleMiddleware'); 
+
+
+// Get user by ID for Deliveries
+router.get('/d/:id',async (req, res) => {
+  try {
+    const result = await sendMessageWithResponse('user-request', {
+      action: 'getUser',
+      payload: { userId: req.params.id }
+    });
+    
+    return res.json(result);
+  } catch (error) {
+    console.error('Error fetching user:', error.message);
+    return res.status(500).json({ 
+      message: error.message || 'Error fetching user' 
+    });
+  }
+});
+
+// Get all users with pagination for Deliveries
+router.get('/d',async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    
+    const result = await sendMessageWithResponse('user-request', {
+      action: 'getUsers',
+      payload: { page, limit }
+    });
+
+    // Ensure we're returning the data in a consistent format
+    return res.status(200).json({
+      data: result
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error.message);
+    return res.status(error.statusCode || 500).json({ 
+      success: false,
+      message: error.message || 'Error fetching users' 
+    });
+  }
+});
+
+
 router.post('/nearby', async (req, res) => {
   console.log('Fetching nearby drivers...',req.body);
   try {
@@ -56,7 +100,7 @@ router.post('/', async (req, res) => {
 
 
 // Get user by ID
-router.get('/:id',async (req, res) => {
+router.get('/:id',verifyToken, authorizeRoles('CUSTOMER'),async (req, res) => {
   try {
     const result = await sendMessageWithResponse('user-request', {
       action: 'getUser',
@@ -73,7 +117,7 @@ router.get('/:id',async (req, res) => {
 });
 
 // Get all users with pagination
-router.get('/',async (req, res) => {
+router.get('/', verifyToken,authorizeRoles('ADMIN') ,async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;

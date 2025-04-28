@@ -108,7 +108,7 @@ class OrderConsumer {
             
       [
         await axios.get(`http://localhost:5003/restaurants/${orderData.restaurantId}`),
-           await axios.get(`http://localhost:5003/users/${orderData.userId}`)
+           await axios.get(`http://localhost:5003/users/d/${orderData.userId}`)
       //RestaurantService.getRestaurantById(orderData.restaurantId),
       //CustomerService.getCustomerById(orderData.customerId)
     ]);

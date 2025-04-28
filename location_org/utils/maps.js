@@ -6,7 +6,7 @@ async function getMapData() {
   const [driversResponse, restaurantsResponse] = await Promise.all([
     //Driver.find({ status: 'available' }).lean(),
     //Restaurant.find().lean()
-     axios.get(`http://localhost:5003/users/`),
+     axios.get(`http://localhost:5003/users/d`),
      axios.get('http://localhost:5003/restaurants/')
 
   ]);

@@ -78,14 +78,14 @@ try {
     let updatedOrder = { };
     
     try {
-        const customer = await axios.get(`http://localhost:5003/users/${order.customerId}`,
+        const customer = await axios.get(`http://localhost:5003/users/d/${order.customerId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }
         );
-        const driver = await axios.get(`http://localhost:5003/users/${order.driverId}`,
+        const driver = await axios.get(`http://localhost:5003/users/d/${order.driverId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -144,7 +144,7 @@ try {
     let updatedOrder = { };
     
     try {
-        const customer = await axios.get(`http://localhost:5003/users/${order.customerId}`,
+        const customer = await axios.get(`http://localhost:5003/users/d/${order.customerId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
