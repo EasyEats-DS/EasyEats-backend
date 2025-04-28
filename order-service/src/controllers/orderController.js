@@ -53,6 +53,19 @@ exports.getOrderById = async (orderId) => {
   }
 };
 
+// Get all orders (for admin)
+exports.getAllOrders = async () => {
+  try {
+    // pull all orders
+    const orders = await Order.find().lean();
+    return { orders };
+  } catch (error) {
+    console.error('Error fetching all orders:', error);
+    // throw an object so kafka consumer can forward statusCode/message
+    throw { statusCode: 500, message: 'Failed to fetch all orders' };
+  }
+};
+
 // Get all orders with pagination (user‑service style)
 exports.getOrders = async (query) => {
   try {
@@ -85,42 +98,48 @@ exports.getOrders = async (query) => {
   }
 };
 
-//Update the status of an order
+
+// Update the status of an order
 exports.updateOrderStatus = async (orderId, status) => {
-  try {
-    if (!orderId) {
-      const err = new Error('Order ID is required');
-      err.statusCode = 400;
-      throw err;
-    }
-    if (!mongoose.Types.ObjectId.isValid(orderId)) {
-      const err = new Error('Invalid order ID format');
-      err.statusCode = 400;
-      throw err;
-    }
-    const allowed = ['pending','processing','shipped','delivered','cancelled'];
-    if (!allowed.includes(status)) {
-      const err = new Error(`Invalid status: ${status}`);
-      err.statusCode = 400;
-      throw err;
-    }
-    const order = await Order.findById(orderId);
-    if (!order) {
-      const err = new Error('Order not found');
-      err.statusCode = 404;
-      throw err;
-    }
-    console.log('orderfineded', order);
-    order.status = status;
-    order.updatedAt = Date.now();
-    const updated = await order.save();
-    // notify other services
-    await produceMessage('order-status', { orderId, userId: order.userId, status, timestamp: new Date().toISOString() });
-    return updated;
-  } catch (error) {
-    console.error('Error updating order status:', error);
-    throw error;
+  // 1Validate orderId and status as you already do
+  if (!orderId) {
+    const err = new Error('Order ID is required');
+    err.statusCode = 400;
+    throw err;
   }
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    const err = new Error('Invalid order ID format');
+    err.statusCode = 400;
+    throw err;
+  }
+  const allowed = ['pending','processing','shipped','delivered','cancelled'];
+  if (!allowed.includes(status)) {
+    const err = new Error(`Invalid status: ${status}`);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const updated = await Order.findByIdAndUpdate(
+    orderId,
+    { status, updatedAt: Date.now() },
+    { new: true }        
+  );
+
+  if (!updated) {
+    const err = new Error('Order not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  //  Emit your Kafka event as before
+  await produceMessage('order-status', {
+    orderId,
+    userId: updated.userId,
+    status,
+    timestamp: new Date().toISOString()
+  });
+
+  return updated;
 };
 
 // Delete an order by its ID
