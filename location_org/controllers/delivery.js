@@ -204,7 +204,7 @@ exports.updateDeliveryStatus = async (diverId,statuss) => {
       deliveryId,
       { deliveryStatus: status },
       { new: true }
-    ).populate('driverId').populate('customerId').populate('restaurantId');
+    )//.populate('driverId').populate('customerId').populate('restaurantId');
 
     if (!updatedDelivery) {
       console.log("Delivery not found for update:", deliveryId); // Debugging line
