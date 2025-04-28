@@ -71,6 +71,12 @@ const initKafkaConsumer = async () => {
             case 'getRestaurantMenu':
               responseData = await restaurantController.getRestaurantMenu(payload.restaurantId);
               break;
+            case 'deleteMenuItem':
+              responseData = await restaurantController.deleteMenuItem(
+                payload.restaurantId, 
+                payload.menuItemId
+              );
+              break;
             default:
               success = false;
               responseData = { message: `Unknown action: ${action}` };
