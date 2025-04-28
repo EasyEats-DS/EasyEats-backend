@@ -49,6 +49,9 @@ const initKafkaConsumer = async () => {
             case 'getOrder':
               responseData = await orderController.getOrderById(payload.orderId);
               break;
+            case 'getAllOrders':
+              responseData = await orderController.getAllOrders();
+              break;
             case "getOrders":
               responseData = await orderController.getOrders(payload);
               break;
