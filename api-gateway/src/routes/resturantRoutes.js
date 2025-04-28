@@ -186,4 +186,25 @@ router.get('/:id/menu', async (req, res) => {
   }
 });
 
+
+// Delete menu item
+router.delete('/:id/menu/:menuItemId', async (req, res) => {
+  try {
+    const result = await sendMessageWithResponse('restaurant-request', {
+      action: 'deleteMenuItem',
+      payload: {
+        restaurantId: req.params.id,
+        menuItemId: req.params.menuItemId
+      }
+    });
+    
+    return res.json(result);
+  } catch (error) {
+    console.error('Error deleting menu item:', error.message);
+    return res.status(error.statusCode || 500).json({ 
+      message: error.message || 'Error deleting menu item' 
+    });
+  }
+});
+
 module.exports = router;
