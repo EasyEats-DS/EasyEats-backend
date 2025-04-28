@@ -43,11 +43,18 @@ router.post('/', async (req, res) => {
 
 router.get('/cus/:id', async (req, res) => {
     console.log("customer id________",req.params.id);
+    console.log("token________",req.headers['authorization']);
+
+    let data = {
+      customerId: req.params.id,
+      token: req.headers['authorization'] 
+    }
+
   try {
     const deliveryResult = await sendMessageWithResponse('delivery-request', {
       action: 'getDeliveriesByCusId',
       replyTo: 'delivery-response',
-      payload: { customerId: req.params.id }
+      payload: data
     });
 
     console.log("deliveryResult________",deliveryResult);
@@ -64,11 +71,16 @@ router.get('/cus/:id', async (req, res) => {
 
 router.get('/driver/:id', async (req, res) => {
     console.log("driver id________",req.params.id);
+    console.log("token________",req.headers['authorization']);
+    let data = {
+      driverId: req.params.id,
+      token: req.headers['authorization'] 
+    }
   try {
     const deliveryResult = await sendMessageWithResponse('delivery-request', {
       action: 'getDeliveriesByDriver',
       replyTo: 'delivery-response',
-      payload: { driverId: req.params.id }
+      payload: data
     });
 
     console.log("deliveryResult________",deliveryResult);

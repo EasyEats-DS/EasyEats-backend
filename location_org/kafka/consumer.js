@@ -48,8 +48,8 @@ class OrderConsumer {
         }
         else if(action == 'getDeliveriesByCusId'){
           console.log('Fetching deliveries by customer ID:', payload);
-          console.log('Fetching deliveries by customer ID:', payload.customerId);
-          const res = await getDeliveryByCusId(payload.customerId);
+          console.log('Fetching deliveries by customer ID____:', payload.customerId);
+          const res = await getDeliveryByCusId(payload.customerId,payload.token);
           //console.log('Delivery data for customer:', res);
           const topic = payload.replyTo || 'delivery-response';
           this.kafkaService.produceMessage(topic ,res,correlationId); // Send response back to the topic
@@ -76,7 +76,7 @@ class OrderConsumer {
   async processDeliveryRequest(io, deliveryData) {
     console.log('Processing delivery request:', deliveryData);
     const correlationId = deliveryData.correlationId;
-    const res = await getDeliveryByDriverId(deliveryData.payload.driverId);
+    const res = await getDeliveryByDriverId(deliveryData.payload.driverId,deliveryData.payload.token);
     console.log('Delivery data for driver:', res);
     const topic = deliveryData.replyTo || 'delivery-response';
     this.kafkaService.produceMessage(topic ,res,correlationId); // Send response back to the topic
