@@ -4,9 +4,9 @@ const mongoose = require('mongoose');
 
 exports.createOrder = async (orderData) => {
   try {
-    const { userId, restaurantId, products, totalAmount } = orderData;
+    const { userId, restaurantId, products, totalAmount, paymentMethod } = orderData;
     
-    if (!userId || !restaurantId || !products || !totalAmount) {
+    if (!userId || !restaurantId || !products || !totalAmount || !paymentMethod) {
       throw new Error('Missing required fields');
     }
     
@@ -16,6 +16,7 @@ exports.createOrder = async (orderData) => {
       restaurantId,
       products,
       totalAmount,
+      paymentMethod,
       status: 'pending'
     });
     
@@ -254,7 +255,7 @@ exports.updateOrder = async (orderId, orderData) => {
     if (!existingOrder) {/*…*/}
 
     // 3. Your existing products/totalAmount/status validations
-    const { products, totalAmount, status } = orderData;
+    const { products, totalAmount, status, paymentMethod } = orderData;
     if (!Array.isArray(products) || products.length === 0) {/*…*/}
     if (typeof totalAmount !== 'number' || totalAmount <= 0) {/*…*/}
     const allowed = [/*…*/];
@@ -263,7 +264,7 @@ exports.updateOrder = async (orderId, orderData) => {
     // 4. Perform the update
     const updated = await Order.findByIdAndUpdate(
       orderId,
-      { products, totalAmount, ...(status && { status }), updatedAt: Date.now() },
+      { products, totalAmount, ...(status && { status }), ...(paymentMethod && { paymentMethod }), updatedAt: Date.now() },
       { new: true }
     );
     if (!updated) {/*…*/}
