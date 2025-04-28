@@ -26,6 +26,11 @@ const OrderSchema = new mongoose.Schema({
       },
     },
   ],
+  paymentMethod: {
+    type: String,
+    enum: ["card", "cash"],
+    required: true,
+  },
   totalAmount: {
     type: Number,
     required: true,
