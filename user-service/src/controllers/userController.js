@@ -219,3 +219,22 @@ exports.getNearbyDrivers = async (location) => {
     throw error;
   }
 }
+
+exports.updateLocation =  async (location,customerId) =>{
+  console.log('Updating customer location:', location, customerId);
+  const loc = [location.latitude, location.longitude];
+  try {
+    const customer = await User.findById(customerId);
+    if (!customer) {
+      throw new Error('Customer not found');
+    }
+    //console.log("Customer  ___________pre",customer);
+    customer.position.coordinates = loc;
+    //console.log("Customer  ___________post",customer);
+    await customer.save();
+    return customer;
+  } catch (err) {
+    console.error("Error updating customer location:", err.message);
+    throw new Error('Server error');
+  }
+}

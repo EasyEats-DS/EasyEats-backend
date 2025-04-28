@@ -63,11 +63,14 @@ exports.getDeliveryById = async (deliveryId) => {
 // }
 
 
-exports.getDeliveryByCusId = async (cus_Id) => {
+exports.getDeliveryByCusId = async (cus_Id,token) => {
   const driverId = cus_Id;
+  console.log("delivery controller customer__:", driverId, 'token',token); // Debugging line
+
   //console.log("delivery controller driverId:", driverId); // Debugging line
 try {
   const deliveries = await Delivery.find({customerId: driverId })
+  console.log("deliveries:", deliveries); // Debugging line
   //console.log("deliveries:", deliveries); // Debugging line
   //.populate('customerId').populate('restaurantId');
   const updatedDeliveries = await Promise.all(deliveries.map(async (order) => {
@@ -75,8 +78,20 @@ try {
     let updatedOrder = { };
     
     try {
-        const customer = await axios.get(`http://localhost:5003/users/${order.customerId}`);
-        const driver = await axios.get(`http://localhost:5003/users/${order.driverId}`);
+        const customer = await axios.get(`http://localhost:5003/users/${order.customerId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const driver = await axios.get(`http://localhost:5003/users/${order.driverId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
         //console.log("1111111111111",driver.data)
         //console.log("customer:", customer.data); // Debugging line
         const restaurantDetails = await axios.get(`http://localhost:5003/restaurants/${order.restaurantId}`);
@@ -92,7 +107,7 @@ try {
         // order.customer = customer.data.user;
         // order.restaurant = restaurantDetails.data;
     } catch (error) {
-        console.error("Error fetching customer or restaurant data:", error);
+        console.error("Error fetching customer or restaurant data cus:");
     }
     
     return updatedOrder;
@@ -116,8 +131,9 @@ catch (err) {
 }
 
 
-exports.getDeliveryByDriverId = async (driver_Id) => {
+exports.getDeliveryByDriverId = async (driver_Id,token) => {
   const driverId = driver_Id;
+  console.log("delivery controller driverId:", driverId, 'token',token); // Debugging line
   //console.log("delivery controller driverId:", driverId); // Debugging line
 try {
   const deliveries = await Delivery.find({ driverId })
@@ -128,9 +144,21 @@ try {
     let updatedOrder = { };
     
     try {
-        const customer = await axios.get(`http://localhost:5003/users/${order.customerId}`);
+        const customer = await axios.get(`http://localhost:5003/users/${order.customerId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
         //console.log("customer:", customer.data); // Debugging line
-        const restaurantDetails = await axios.get(`http://localhost:5003/restaurants/${order.restaurantId}`);
+        const restaurantDetails = await axios.get(`http://localhost:5003/restaurants/${order.restaurantId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
         //console.log("restaurantDetails:", restaurantDetails.data); // Debugging line
         
         updatedOrder = {
@@ -142,7 +170,7 @@ try {
         // order.customer = customer.data.user;
         // order.restaurant = restaurantDetails.data;
     } catch (error) {
-        console.error("Error fetching customer or restaurant data:", error);
+        console.error("Error fetching customer or restaurant data: driver");
     }
     
     return updatedOrder;
