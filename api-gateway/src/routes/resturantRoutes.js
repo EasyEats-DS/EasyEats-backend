@@ -167,4 +167,39 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+
+// Get all restaurants
+router.get('/', async (req, res) => {
+  try {
+    const restaurantsResult = await sendMessageWithResponse('restaurant-request', {
+      action: 'getAllRestaurants',
+      payload: {} // No payload needed
+    });
+    
+    return res.json(restaurantsResult);
+  } catch (error) {
+    console.error('Error fetching all restaurants:', error.message);
+    return res.status(error.statusCode || 500).json({ 
+      message: error.message || 'Error fetching all restaurants' 
+    });
+  }
+});
+
+// Get restaurant menu by ID
+router.get('/:id/menu', async (req, res) => {
+  try {
+    const menuResult = await sendMessageWithResponse('restaurant-request', {
+      action: 'getRestaurantMenu',
+      payload: { restaurantId: req.params.id }
+    });
+    
+    return res.json(menuResult);
+  } catch (error) {
+    console.error('Error fetching restaurant menu:', error.message);
+    return res.status(error.statusCode || 500).json({ 
+      message: error.message || 'Error fetching restaurant menu' 
+    });
+  }
+});
+
 module.exports = router;
