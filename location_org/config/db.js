@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
-  console.log('Connecting to MongoDB...',process.env.MONGODB_URI);
+  console.log('Connecting to MongoDB...',process.env.MONGO_URI);
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/foodDelivery', {
+    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/foodDelivery', {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });
