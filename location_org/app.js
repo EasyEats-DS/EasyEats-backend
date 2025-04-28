@@ -5,8 +5,8 @@ const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
 
 // Route imports
-const restaurantRoutes = require('./routes/restaurantRoutes');
-const authRoutes = require('./routes/authR');
+// const restaurantRoutes = require('./routes/restaurantRoutes');
+// const authRoutes = require('./routes/authR');
 const deliveryRoutes = require('./routes/DeliveryRoutes');
 const googleRoutes = require('./routes/googleRoute');
 
@@ -22,10 +22,10 @@ app.use(express.urlencoded({ extended: true }));
 connectDB();
 
 // Routes
-app.use('/api/restaurants', restaurantRoutes);
+// app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/google', googleRoutes);
 app.use('/api/delivery', deliveryRoutes);
-app.use('/api/auth', authRoutes);
+// app.use('/api/auth', authRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
