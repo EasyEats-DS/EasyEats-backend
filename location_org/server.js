@@ -1,7 +1,7 @@
 const http = require('http');
 const app = require('./app');
 const configureSocket = require('./config/socket');
-const { initializeSampleRestaurants } = require('./controllers/restaurantController');
+//const { initializeSampleRestaurants } = require('./controllers/restaurantController');
 const OrderConsumer = require('./kafka/consumer');
 const socketController = require('./controllers/socketController');
 
@@ -15,7 +15,7 @@ socketController(io);
 // Initialize data and start server
 server.listen(PORT, async () => {
   try {
-    await initializeSampleRestaurants();
+    //await initializeSampleRestaurants();
     console.log(`Server running on port ${PORT}`);
     
     // Start Kafka consumer
