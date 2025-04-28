@@ -39,6 +39,10 @@ const OrderSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  restaurantId: {
+    type: String,
+    required: true
+  },
   updatedAt: {
     type: Date,
     default: Date.now,

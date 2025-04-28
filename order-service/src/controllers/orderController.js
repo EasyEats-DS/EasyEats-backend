@@ -4,9 +4,11 @@ const mongoose = require('mongoose');
 
 exports.createOrder = async (orderData) => {
   try {
-    const { userId, restaurantId, products, totalAmount } = orderData;
+
+    const { userId, products, totalAmount , restaurantId } = orderData;
     
-    if (!userId || !restaurantId || !products || !totalAmount) {
+    if (!userId || !products || !totalAmount || !restaurantId) {
+
       throw new Error('Missing required fields');
     }
     
@@ -28,7 +30,10 @@ exports.createOrder = async (orderData) => {
       action: 'validate',
       timestamp: new Date().toISOString()
     });
-    
+     // console.log('Order created:', savedOrder);
+    // await produceMessage('order_placed',
+    //   savedOrder
+    // )
     return savedOrder;
   } catch (error) {
     console.error('Error creating order:', error);

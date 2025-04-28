@@ -32,12 +32,16 @@ const initKafkaConsumer = async () => {
       if (topic === 'restaurant-request') {
         try {
           const { action, payload, correlationId } = messageValue;
-          
+          console.log('Received restaurant request:', messageValue);
+          console.log('Processing restaurant request:', action, payload, correlationId);  
           let responseData;
           let success = true;
           let statusCode = 200;
           
           switch (action) {
+            case 'getAllRestaurants':
+              responseData = await restaurantController.getAllRestaurants(payload);
+              break;
             case 'createRestaurant':
               responseData = await restaurantController.createRestaurant(payload);
               statusCode = 201;

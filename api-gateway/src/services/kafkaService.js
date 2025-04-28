@@ -23,7 +23,7 @@ const initKafkaConsumer = async () => {
   
   // Subscribe to response topics from other services
   await consumer.subscribe({ 
-    topics: ['user-response', 'order-response', 'restaurant-response', 'auth-responses', 'payment-response', 'notification-response'], 
+    topics: ['user-response', 'order-response', 'restaurant-response', 'auth-responses', 'payment-response', 'notification-response',"delivery-response"], 
     fromBeginning: false 
   });
   console.log('Subscribed to response topics');

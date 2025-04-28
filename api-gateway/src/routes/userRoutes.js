@@ -3,7 +3,39 @@ const router = express.Router();
 const { sendMessageWithResponse } = require('../services/kafkaService');
 const verifyToken = require('../middlewares/authMiddleware');
 const authorizeRoles = require('../middlewares/roleMiddleware'); 
+router.post('/nearby', async (req, res) => {
+  console.log('Fetching nearby drivers...',req.body);
+  try {
+    const result = await sendMessageWithResponse('user-request', {
+      action: 'getNearbyDrivers',
+      payload: req.body
+    });
+    
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Error fetching nearby drivers:', error.message);
+    return res.status(500).json({ 
+      message: error.message || 'Error fetching nearby drivers' 
+    });
+  }
+});
 
+router.post('/updateLocation', async (req, res) => {
+  console.log("updateLocation_________",req.body);
+  try {
+    const result = await sendMessageWithResponse('user-request', {
+      action: 'updateUserLocation',
+      payload: req.body
+    });
+    
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Error updating user location:', error.message);
+    return res.status(500).json({ 
+      message: error.message || 'Error updating user location' 
+    });
+  }
+});
 // Create a new user
 router.post('/', async (req, res) => {
   try {
@@ -24,7 +56,7 @@ router.post('/', async (req, res) => {
 
 
 // Get user by ID
-router.get('/:id',verifyToken,async (req, res) => {
+router.get('/:id',async (req, res) => {
   try {
     const result = await sendMessageWithResponse('user-request', {
       action: 'getUser',
@@ -41,7 +73,7 @@ router.get('/:id',verifyToken,async (req, res) => {
 });
 
 // Get all users with pagination
-router.get('/', verifyToken,authorizeRoles('ADMIN') ,async (req, res) => {
+router.get('/',async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -63,6 +95,8 @@ router.get('/', verifyToken,authorizeRoles('ADMIN') ,async (req, res) => {
     });
   }
 });
+
+
 
 // Update user by ID
 router.put('/:id', async (req, res) => {
