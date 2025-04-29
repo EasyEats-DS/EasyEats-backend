@@ -24,7 +24,7 @@ router.post('/', async (req, res) => {
 
 
 // Get user by ID
-router.get('/:id',verifyToken, authorizeRoles('CUSTOMER'),async (req, res) => {
+router.get('/:id',verifyToken,async (req, res) => {
   try {
     const result = await sendMessageWithResponse('user-request', {
       action: 'getUser',
