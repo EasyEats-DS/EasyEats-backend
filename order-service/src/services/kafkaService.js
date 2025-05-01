@@ -36,7 +36,8 @@ const initKafkaConsumer = async () => {
         // Handle API gateway requests
         try {
           const { action, payload, correlationId } = messageValue;
-          
+          console.log('Received order request:', messageValue);
+          console.log('Processing order request:', action, payload, correlationId);
           let responseData;
           let success = true;
           let statusCode = 200;

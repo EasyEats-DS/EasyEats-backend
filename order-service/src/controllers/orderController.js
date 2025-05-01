@@ -29,7 +29,10 @@ exports.createOrder = async (orderData) => {
       action: 'validate',
       timestamp: new Date().toISOString()
     });
-    
+     // console.log('Order created:', savedOrder);
+    // await produceMessage('order_placed',
+    //   savedOrder
+    // )
     return savedOrder;
   } catch (error) {
     console.error('Error creating order:', error);
