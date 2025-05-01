@@ -75,9 +75,13 @@ const handleAcceptOrder = async (io, socket, { driver, order }) => {
     driverToCustomerMap.set(driver._id.toString(), order.customer._id.toString());
     
     const driverSocketId = driverSocketMap.get(driver._id.toString());
+    console.log("driverSocketId", driverSocketId);
     const customerSocket = customerSocketMap.get(order.customer._id);
-    const customerLocation = order.customer.position;
+    console.log("customerSocket", customerSocket);
+    const customerLocation = order.customer.position.coordinates;
+    console.log("customerLocation", customerLocation);
     const cus = order.customer;
+    console.log("products", order.products);
     
     if (driverSocketId) {
       io.to(driverSocketId).emit('customer_location', { cus, coords: customerLocation });
@@ -89,6 +93,9 @@ const handleAcceptOrder = async (io, socket, { driver, order }) => {
       
       const f = await axios.post(`http://localhost:5003/deliveries`, {
         orderId: order._id,
+        products: order.products,
+        totalPrice: order.totalAmount,
+        paymentMethod: order.paymentMethod,
         dropoffLocation: order.dropoff,
         restaurantId: order.restaurantId,
         driverId: driver._id,
@@ -113,6 +120,32 @@ const handleAcceptOrder = async (io, socket, { driver, order }) => {
     console.error('Error in order acceptance:', error);
   }
 };
+
+const handleOrderStatusUpdate = (io, { orderId }) => {
+  const driverId = orderId.driverId;
+  const customerId = orderId.customerId;
+  const customerSocket = customerSocketMap.get(customerId);
+  console.log("customerSocket", customerSocket);
+  console.log('Order status update:', { orderId });
+  let dorder;
+  if(orderId.deliveryStatus === 'in_progress'){
+    dorder = 'shipped';
+  }
+  if(orderId.deliveryStatus === 'completed'){
+    dorder = 'delivered';
+  }
+
+  try {
+    if (!orderId) {
+      throw new Error('Invalid order status update data');
+    }
+
+    io.to(customerSocket).emit('order_status_updated', { orderId });
+  } catch (error) {
+    console.error('Error updating order status:', error);
+  }
+};
+
 
 const handleLiveLocation = async (io, { location, user }) => {
   console.log('Live location update:', { location, user });
@@ -160,6 +193,7 @@ module.exports = {
   handleIdentification,
   handleAcceptOrder,
   handleLiveLocation,
+  handleOrderStatusUpdate,
   handleDisconnect,
   getSocketMaps: () => ({
     connectedDrivers,

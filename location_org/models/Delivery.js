@@ -36,6 +36,32 @@ const deliverySchema = new mongoose.Schema({
     lat: Number,
     lng: Number
   },
+  products: [
+    {
+      productId: {
+        type: String,
+        required: true,
+      },
+      quantity: {
+        type: Number,
+        required: true,
+        default: 1,
+      },
+      price: {
+        type: Number,
+        required: true,
+      },
+    },
+  ],
+  totalPrice: {
+    type: Number,
+    
+  },
+  paymentMethod: {
+    type: String,
+   
+    default: 'credit_card'
+  },
   estimatedTime: {
     type: String,
   },
