@@ -3,8 +3,13 @@ const bcrypt = require('bcrypt');
 
 exports.createUser = async (userData) => {
   try {
-    const { firstName, lastName, email, password, address, role } = userData;
-    
+    const { firstName, lastName, email, password, address, role,position } = userData;
+    console.log(typeof(position))
+
+    let location = [0, 0]; // Default location if not provided
+    location[0] = parseFloat(position.coordinates[0]);
+    location[1] = parseFloat(position.coordinates[1]);
+    console.log('Parsed position:', location);
     if (!firstName || !lastName || !email || !password || !role) {
       const error = new Error('First name, last name, email and password are required');
       error.statusCode = 400;
@@ -44,7 +49,11 @@ exports.createUser = async (userData) => {
         state: address.state || null,
         zipCode: address.zipCode || null,
         country: address.country || null
-      } : undefined
+      } : undefined,
+      position: {
+        
+        coordinates: location
+      } 
     });
     
     const savedUser = await user.save();
@@ -186,3 +195,46 @@ exports.getUsers = async (query) => {
     };
   }
 };
+exports.getNearbyDrivers = async (location) => {
+  console.log('Fetching nearby drivers for location:', location);
+  try{
+    const  coordinates  = location.location;
+    console.log('Coordinates for nearby drivers:', coordinates);
+    const nearbyDrivers = await User.find({
+      position: {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [parseFloat(coordinates[0]), parseFloat(coordinates[1])]
+          },
+          $maxDistance: 5000 // 5 km radius
+        }
+      },
+      role: 'DELIVERY_PERSON' // Assuming you have a role field to identify drivers
+    }).select('-password');
+    
+    return nearbyDrivers;
+  }catch (error) {
+    console.error('Error fetching nearby drivers:', error);
+    throw error;
+  }
+}
+
+exports.updateLocation =  async (location,customerId) =>{
+  console.log('Updating customer location:', location, customerId);
+  const loc = [location.latitude, location.longitude];
+  try {
+    const customer = await User.findById(customerId);
+    if (!customer) {
+      throw new Error('Customer not found');
+    }
+    //console.log("Customer  ___________pre",customer);
+    customer.position.coordinates = loc;
+    //console.log("Customer  ___________post",customer);
+    await customer.save();
+    return customer;
+  } catch (err) {
+    console.error("Error updating customer location:", err.message);
+    throw new Error('Server error');
+  }
+}
