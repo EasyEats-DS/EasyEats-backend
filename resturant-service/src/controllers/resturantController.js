@@ -1,29 +1,7 @@
 const Restaurant = require('../models/resturantModel');
 const { produceMessage } = require('../services/kafkaService');
-exports.getAllRestaurants = async (query) => {
-  try {
-    const { page = 1, limit = 10, ...filters } = query;
-    const skip = (page - 1) * limit;
-    
-    const restaurants = await Restaurant.find()
-      .skip(skip)
-      .limit(limit)
-      .populate('ownerId', 'name email')
-      .select('-__v');
-    
-    const totalRestaurants = await Restaurant.countDocuments(filters);
-    
-    // return {
-    //   restaurants,
-    //   //totalPages: Math.ceil(totalRestaurants / limit),
-    //   //currentPage: page
-    // };
-    return restaurants;
-  } catch (error) {
-    console.error('Error fetching restaurants:', error);
-    throw error;
-  }
-};
+
+
 exports.createRestaurant = async (restaurantData) => {
   try {
     const { name, ownerId } = restaurantData;
@@ -252,6 +230,32 @@ exports.deleteMenuItem = async (restaurantId, menuItemId) => {
     return updatedRestaurant;
   } catch (error) {
     console.error('Error deleting menu item:', error);
+    throw error;
+  }
+};
+
+
+exports.getAllRestaurants = async (query) => {
+  try {
+    const { page = 1, limit = 10, ...filters } = query;
+    const skip = (page - 1) * limit;
+    
+    const restaurants = await Restaurant.find()
+      .skip(skip)
+      .limit(limit)
+      .populate('ownerId', 'name email')
+      .select('-__v');
+    
+    const totalRestaurants = await Restaurant.countDocuments(filters);
+    
+    // return {
+    //   restaurants,
+    //   //totalPages: Math.ceil(totalRestaurants / limit),
+    //   //currentPage: page
+    // };
+    return restaurants;
+  } catch (error) {
+    console.error('Error fetching restaurants:', error);
     throw error;
   }
 };
