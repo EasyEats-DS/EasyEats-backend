@@ -100,7 +100,7 @@ router.post('/', async (req, res) => {
 
 
 // Get user by ID
-router.get('/:id',verifyToken, authorizeRoles('CUSTOMER'),async (req, res) => {
+router.get('/:id',async (req, res) => {
   try {
     const result = await sendMessageWithResponse('user-request', {
       action: 'getUser',
@@ -117,7 +117,7 @@ router.get('/:id',verifyToken, authorizeRoles('CUSTOMER'),async (req, res) => {
 });
 
 // Get all users with pagination
-router.get('/', verifyToken,authorizeRoles('ADMIN') ,async (req, res) => {
+router.get('/' ,async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
