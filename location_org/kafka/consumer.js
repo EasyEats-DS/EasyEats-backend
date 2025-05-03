@@ -113,8 +113,8 @@ class OrderConsumer {
     let [restaurant, customer] = await Promise.all(
             
       [
-        await axios.get(`http://localhost:5003/restaurants/${orderData.restaurantId}`),
-           await axios.get(`http://localhost:5003/users/d/${orderData.userId}`)
+        await axios.get(`http://api-gateway:5003/restaurants/${orderData.restaurantId}`),
+           await axios.get(`http://api-gateway:5003/users/d/${orderData.userId}`)
       //RestaurantService.getRestaurantById(orderData.restaurantId),
       //CustomerService.getCustomerById(orderData.customerId)
     ]);
@@ -131,7 +131,7 @@ class OrderConsumer {
     try {
       const { driverSocketMap } = getSocketMaps(); // Use driverSocketMap for id => socketId
       //const nearD = await DriverService.getNearbyDrivers(orderData.restaurant.position);
-      let nearD = await axios.post(`http://localhost:5003/users/nearby`, {
+      let nearD = await axios.post(`http://api-gateway:5003/users/nearby`, {
         
         location: orderData.restaurant.position.coordinates
         
