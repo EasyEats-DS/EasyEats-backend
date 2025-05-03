@@ -24,10 +24,12 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['ADMIN', 'RESTAURANT_OWNER', 'DELIVERY_PERSON','CUSTOMER'],
-    default: 'CUSTOMER',
+    enum: ['RESTAURANT_OWNER', 'DELIVERY_PERSON','CUSTOMER','SUPER_ADMIN'],
     required: true,
-    // default: 'DELIVERY_PERSON' 
+  },
+  phoneNumber: {
+    type: String,
+    trim: true
   },
   position: {
     type: {
@@ -36,7 +38,7 @@ const UserSchema = new mongoose.Schema({
     },
     coordinates: {
       type: [Number],  // [longitude, latitude]
-      required: true
+      default: [0, 0]  // Default coordinates set to [0, 0]
     }
   },
   address: {
