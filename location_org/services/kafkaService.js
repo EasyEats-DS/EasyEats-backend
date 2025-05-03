@@ -3,17 +3,17 @@ const { Kafka } = require('kafkajs');
 class KafkaService {
   constructor() {
     this.kafka = new Kafka({
-      clientId: 'driver-service',
-      brokers: [process.env.KAFKA_BROKER || 'localhost:9092'],
+      clientId: 'location-service',
+      brokers: [process.env.KAFKA_BROKER || 'kafka:9092']
     });
     this.consumer = this.kafka.consumer({ groupId: 'driver-group' });
-    this.producer = this.kafka.producer(); // <-- Create the producer!
+    this.producer = this.kafka.producer();
   }
 
   async connect() {
     try {
       await this.consumer.connect();
-      await this.producer.connect(); // <-- Connect producer too!
+      await this.producer.connect();
       console.log('Connected to Kafka (consumer and producer)');
     } catch (error) {
       console.error('Error connecting to Kafka:', error);
