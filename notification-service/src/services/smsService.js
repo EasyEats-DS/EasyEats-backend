@@ -28,17 +28,27 @@ try {
   console.error('Failed to initialize SMS service:', error.message);
 }
 
-const sendSMS = async (to, message) => {
+const sendSMS = async (to, data) => {
   if (!client) {
-    throw new Error('SMS service not initialized. Check your Twilio credentials.');
+    throw new Error('SMS service not initialized - check TWILIO configuration in .env file');
   }
 
   try {
     validatePhoneNumber(to);
     const { TWILIO_PHONE_NUMBER } = process.env;
 
+    // Format messages based on notification type
+    let messageBody;
+    if (data.type === 'ORDER_CONFIRMATION') {
+      messageBody = `🍽️ EasyEats: Your #${data.orderId.substring(0, 8)} is confirmed! Total: $${data.totalAmount}. We'll notify you when your delicious meal is on its way.`;
+    } else if (data.type === 'DELIVERY_UPDATE') {
+      messageBody = `🚗 EasyEats Update: #${data.orderId.substring(0, 8)} - ${data.status}. ${data.estimatedArrival ? `ETA: ${data.estimatedArrival}` : ''}`;
+    } else {
+      messageBody = data.message;
+    }s
+
     const result = await client.messages.create({
-      body: message,
+      body: messageBody,
       to,
       from: TWILIO_PHONE_NUMBER
     });

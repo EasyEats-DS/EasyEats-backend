@@ -20,8 +20,13 @@ const notificationSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['PENDING', 'SENT', 'FAILED'],
+        enum: ['PENDING', 'SENT', 'FAILED', 'READ'],
         default: 'PENDING'
+    },
+    preferredChannel: {
+        type: String,
+        enum: ['EMAIL', 'SMS', 'BOTH'],
+        default: 'BOTH'
     },
     metadata: {
         email: String,
@@ -31,6 +36,9 @@ const notificationSchema = new mongoose.Schema({
             email: { type: Boolean, default: false },
             sms: { type: Boolean, default: false }
         }
+    },
+    readAt: {
+        type: Date
     },
     createdAt: {
         type: Date,

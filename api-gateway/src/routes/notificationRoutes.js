@@ -15,15 +15,22 @@ router.post('/order-confirmation', async (req, res) => {
         userId: req.body.userId,
         email: req.body.customerEmail,
         phone: req.body.customerPhone,
-        total: req.body.totalAmount
+        total: req.body.totalAmount,
+        preferredChannel: 'BOTH',
+        metadata: {
+          ...req.body.metadata,
+          email: req.body.customerEmail,
+          phone: req.body.customerPhone,
+          subject: 'Order Confirmation - EasyEats'
+        }
       }
-    }, 15000); // explicitly set timeout to 15 seconds
+    }, 15000);
     
     return res.status(200).json(result);
   } catch (error) {
     console.error('Error sending order confirmation:', error.message);
     return res.status(error.statusCode || 500).json({ 
-      success: false,
+      success: false, 
       message: error.message || 'Error sending order confirmation' 
     });
   }
@@ -39,9 +46,16 @@ router.post('/delivery-update', async (req, res) => {
         userId: req.body.userId,
         status: req.body.status,
         email: req.body.customerEmail,
-        phone: req.body.customerPhone
+        phone: req.body.customerPhone,
+        preferredChannel: 'BOTH',
+        metadata: {
+          ...req.body.metadata,
+          email: req.body.customerEmail,
+          phone: req.body.customerPhone,
+          subject: 'Delivery Update - EasyEats'
+        }
       }
-    }, 15000); // explicitly set timeout to 15 seconds
+    }, 15000);
     
     return res.status(200).json(result);
   } catch (error) {

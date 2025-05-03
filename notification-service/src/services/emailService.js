@@ -79,19 +79,33 @@ const generateEmailContent = (subject, data) => {
     switch (subject) {
         case 'Order Confirmation':
             return `
-                <h2>Order Confirmation</h2>
-                <p>Your order #${data.orderId} has been confirmed.</p>
-                <h3>Order Details:</h3>
-                <p>Total Amount: $${data.totalAmount}</p>
-                <p>Estimated Delivery Time: ${data.estimatedDeliveryTime}</p>
-                ${data.items ? `
-                    <h4>Items:</h4>
-                    <ul>
-                        ${data.items.map(item => `
-                            <li>${item.name} x ${item.quantity} - $${item.price}</li>
-                        `).join('')}
-                    </ul>
-                ` : ''}
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #e65100; margin-bottom: 20px;">Thanks for your order!</h2>
+                    <p style="font-size: 16px; color: #333;">We're excited to prepare your delicious meal.</p>
+                    
+                    <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <p style="margin: 5px 0;"><strong>Order ID:</strong> ${data.orderId.substring(0, 8)}</p>
+                        <p style="margin: 5px 0;"><strong>Total:</strong> $${data.totalAmount}</p>
+                        ${data.estimatedDeliveryTime ? `<p style="margin: 5px 0;"><strong>Estimated Delivery:</strong> ${data.estimatedDeliveryTime}</p>` : ''}
+                    </div>
+
+                    ${data.items ? `
+                        <div style="margin-top: 20px;">
+                            <h3 style="color: #424242;">Order Details</h3>
+                            <div style="border-top: 1px solid #eee; padding-top: 10px;">
+                                ${data.items.map(item => `
+                                    <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                                        <span>${item.name} × ${item.quantity}</span>
+                                        <span>$${item.price}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <p style="margin-top: 20px; color: #666;">We'll keep you updated on your order status.</p>
+                    <p style="color: #666;">Thank you for choosing EasyEats!</p>
+                </div>
             `;
         case 'Delivery Update':
             return `

@@ -20,7 +20,8 @@ const consumer = kafka.consumer({ groupId: 'notification-service-group' });
 const initKafkaConsumer = async () => {
   try {
     await consumer.connect();
-    await consumer.subscribe({ topic: 'notification-request' });
+    // Subscribe to both notification requests and order status updates
+    await consumer.subscribe({ topics: ['notification-request', 'order-status'] });
 
     await consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
@@ -28,6 +29,21 @@ const initKafkaConsumer = async () => {
         try {
           parsedMessage = JSON.parse(message.value.toString());
           console.log(`Received message from topic ${topic}:`, parsedMessage);
+          
+          if (topic === 'order-status') {
+            // Handle order status updates automatically
+            const { orderId, userId, status } = parsedMessage;
+            await sendDeliveryUpdate({
+              orderId,
+              userId,
+              status,
+              preferredChannel: 'BOTH', // Always use both channels for order updates
+              metadata: {
+                subject: 'Order Status Update - EasyEats'
+              }
+            });
+            return;
+          }
           
           const { action, payload, correlationId } = parsedMessage;
           if (!action || !correlationId) {
@@ -80,18 +96,20 @@ const initKafkaConsumer = async () => {
           });
         } catch (error) {
           console.error('Error processing notification request:', error);
-          await producer.send({
-            topic: 'notification-response',
-            messages: [{
-              value: JSON.stringify({
-                correlationId: parsedMessage?.correlationId,
-                success: false,
-                statusCode: error.statusCode || 500,
-                message: error.message || 'Internal server error',
-                timestamp: new Date().toISOString()
-              })
-            }]
-          });
+          if (parsedMessage?.correlationId) {
+            await producer.send({
+              topic: 'notification-response',
+              messages: [{
+                value: JSON.stringify({
+                  correlationId: parsedMessage.correlationId,
+                  success: false,
+                  statusCode: error.statusCode || 500,
+                  message: error.message || 'Internal server error',
+                  timestamp: new Date().toISOString()
+                })
+              }]
+            });
+          }
         }
       },
     });
