@@ -3,22 +3,22 @@ require('dotenv').config();
 
 // Validate and initialize email configuration
 const validateEmailConfig = () => {
-    const { EMAIL_USER, EMAIL_APP_PASSWORD } = process.env;
+    const { EMAIL_USER, EMAIL_PASSWORD } = process.env;
     
     if (!EMAIL_USER) {
         throw new Error('EMAIL_USER is not configured in .env file');
     }
-    if (!EMAIL_APP_PASSWORD) {
-        throw new Error('EMAIL_APP_PASSWORD is not configured in .env file');
+    if (!EMAIL_PASSWORD) {
+        throw new Error('EMAIL_PASSWORD is not configured in .env file');
     }
 
-    return { EMAIL_USER, EMAIL_APP_PASSWORD };
+    return { EMAIL_USER, EMAIL_PASSWORD };
 };
 
 // Create transporter with validated config
 const createTransporter = () => {
     try {
-        const { EMAIL_USER, EMAIL_APP_PASSWORD } = validateEmailConfig();
+        const { EMAIL_USER, EMAIL_PASSWORD } = validateEmailConfig();
         
         const transporter = nodemailer.createTransport({
             service: 'gmail',
@@ -27,7 +27,7 @@ const createTransporter = () => {
             secure: true,
             auth: {
                 user: EMAIL_USER,
-                pass: EMAIL_APP_PASSWORD
+                pass: EMAIL_PASSWORD
             },
             debug: true // Enable debug logging
         });
@@ -54,7 +54,7 @@ const transporter = createTransporter();
 
 const sendEmail = async (to, subject, data) => {
     if (!transporter) {
-        throw new Error('Email service not initialized - check EMAIL_USER and EMAIL_APP_PASSWORD in .env file');
+        throw new Error('Email service not initialized - check EMAIL_USER and EMAIL_PASSWORD in .env file');
     }
 
     try {

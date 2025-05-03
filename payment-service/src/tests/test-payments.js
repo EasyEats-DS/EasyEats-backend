@@ -10,7 +10,7 @@ const testAllPaymentEndpoints = async () => {
     const createPaymentData = {
       orderId,
       userId: 'test-user-123',
-      amount: 2999,
+      amount: 29.99, // Changed from 2999 to 29.99 for a more realistic test amount
       currency: 'usd'
     };
     console.log('Creating payment intent with data:', createPaymentData);

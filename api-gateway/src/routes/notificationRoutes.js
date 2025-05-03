@@ -127,7 +127,7 @@ router.get('/user/:userId', async (req, res) => {
 });
 
 // Mark notification as read
-router.patch('/:id/read', async (req, res) => {
+router.patch('/:id/markAsRead', async (req, res) => {
   try {
     const result = await sendMessageWithResponse('notification-request', {
       action: 'markAsRead',

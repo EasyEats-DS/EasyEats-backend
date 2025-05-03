@@ -146,20 +146,13 @@ exports.createPaymentIntent = async (data) => {
     }
 
     // Create payment intent with Stripe
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount),
-      currency: currency.toLowerCase(),
-      metadata: {
-        orderId,
-        userId
-      }
-    });
+    const paymentIntent = await createPaymentIntent(amount, currency.toLowerCase());
 
-    // Save payment record to database
+    // Save payment record to database with original amount (not multiplied by 100)
     const payment = new Payment({
       orderId,
       userId,
-      amount,
+      amount: amount, // Store original amount without multiplication
       currency,
       paymentIntentId: paymentIntent.id,
       status: paymentIntent.status
@@ -170,7 +163,7 @@ exports.createPaymentIntent = async (data) => {
       success: true,
       paymentId: payment._id,
       clientSecret: paymentIntent.client_secret,
-      amount,
+      amount: amount, // Return original amount without multiplication
       currency
     };
   } catch (error) {

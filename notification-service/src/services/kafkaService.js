@@ -5,7 +5,8 @@ const {
   getNotificationHistory,
   getNotificationsByStatus,
   getNotificationsByUser,
-  deleteNotification
+  deleteNotification,
+  markNotificationAsRead
 } = require('../controllers/notificationController');
 
 const kafka = new Kafka({
@@ -55,6 +56,9 @@ const initKafkaConsumer = async () => {
               break;
             case 'deleteNotification':
               responseData = await deleteNotification(payload.notificationId);
+              break;
+            case 'markAsRead':
+              responseData = await markNotificationAsRead(payload.notificationId);
               break;
             default:
               success = false;
