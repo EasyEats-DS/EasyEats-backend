@@ -3,16 +3,22 @@ const bcrypt = require('bcrypt');
 
 exports.createUser = async (userData) => {
   try {
-    const { firstName, lastName, email, password, address, role } = userData;
-    
-    if (!firstName || !lastName || !email || !password || !role) {
-      const error = new Error('First name, last name, email and password are required');
+    const { firstName, lastName, email, password, address, role, phoneNumber } = userData;
+
+    // Validation
+    if (!firstName || !lastName || !email || !password || !role || !phoneNumber) {
+      const error = new Error('First name, last name, email, role, password, and phone number are required');
       error.statusCode = 400;
       throw error;
     }
 
+    // let location = [0, 0]; // Default location if not provided
+    // location[0] = parseFloat(position.coordinates[0]);
+    // location[1] = parseFloat(position.coordinates[1]);
+    // console.log('Parsed position:', location);
+
     // Validate role
-    const validRoles = ['ADMIN', 'RESTAURANT_OWNER', 'DELIVERY_PERSON'];
+    const validRoles = ['RESTAURANT_OWNER', 'DELIVERY_PERSON','CUSTOMER','SUPER_ADMIN']
     if (!validRoles.includes(role)) {
       const error = new Error('Invalid user role');
       error.statusCode = 400;
@@ -30,7 +36,8 @@ exports.createUser = async (userData) => {
     
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
-    
+
+
     // Create new user
     const user = new User({
       firstName,
@@ -38,16 +45,19 @@ exports.createUser = async (userData) => {
       email,
       password: hashedPassword,
       role,
+      phoneNumber,
       address: address ? {
         street: address.street || null,
         city: address.city || null,
         state: address.state || null,
         zipCode: address.zipCode || null,
         country: address.country || null
-      } : undefined
+      } : undefined,
     });
-    
+    console.log('User object before saving:', user);
+
     const savedUser = await user.save();
+    console.log('User saved successfully:', savedUser);
     
     // Verify the user was actually saved
     const verifiedUser = await User.findById(savedUser._id);
@@ -57,8 +67,8 @@ exports.createUser = async (userData) => {
     }
     
     // Don't return password in the response
-    const userResponse = savedUser.toObject();
-    delete userResponse.password;
+    const userResponse = savedUser;
+    // delete userResponse.password;
     
     return userResponse;
   } catch (error) {
@@ -66,7 +76,6 @@ exports.createUser = async (userData) => {
     throw error;
   }
 };
-
 
 exports.getUserById = async (userId) => {
   try {
@@ -186,3 +195,46 @@ exports.getUsers = async (query) => {
     };
   }
 };
+exports.getNearbyDrivers = async (location) => {
+  console.log('Fetching nearby drivers for location:', location);
+  try{
+    const  coordinates  = location.location;
+    console.log('Coordinates for nearby drivers:', coordinates);
+    const nearbyDrivers = await User.find({
+      position: {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [parseFloat(coordinates[0]), parseFloat(coordinates[1])]
+          },
+          $maxDistance: 5000 // 5 km radius
+        }
+      },
+      role: 'DELIVERY_PERSON' // Assuming you have a role field to identify drivers
+    }).select('-password');
+
+    return nearbyDrivers;
+  }catch (error) {
+    console.error('Error fetching nearby drivers:', error);
+    throw error;
+  }
+}
+
+exports.updateLocation =  async (location,customerId) =>{
+  console.log('Updating customer location:', location, customerId);
+  const loc = [location.latitude, location.longitude];
+  try {
+    const customer = await User.findById(customerId);
+    if (!customer) {
+      throw new Error('Customer not found');
+    }
+    //console.log("Customer  ___________pre",customer);
+    customer.position.coordinates = loc;
+    //console.log("Customer  ___________post",customer);
+    await customer.save();
+    return customer;
+  } catch (err) {
+    console.error("Error updating customer location:", err.message);
+    throw new Error('Server error');
+  }
+}

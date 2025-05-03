@@ -24,10 +24,22 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['ADMIN', 'RESTAURANT_OWNER', 'DELIVERY_PERSON','CUSTOMER'],
-    default: 'CUSTOMER',
+    enum: ['RESTAURANT_OWNER', 'DELIVERY_PERSON','CUSTOMER','SUPER_ADMIN'],
     required: true,
-    // default: 'DELIVERY_PERSON' 
+  },
+  phoneNumber: {
+    type: String,
+    trim: true
+  },
+  position: {
+    type: {
+      type: String,
+      default: 'Point'
+    },
+    coordinates: {
+      type: [Number],  // [longitude, latitude]
+      default: [0, 0]  // Default coordinates set to [0, 0]
+    }
   },
   address: {
     street: String,
@@ -39,7 +51,12 @@ const UserSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  lastUpdated: {
+    type: Date,
+    default: Date.now
   }
 });
-
+// 🗺️ Add the 2dsphere index for geospatial queries
+UserSchema.index({ position: '2dsphere' });
 module.exports = mongoose.model('User', UserSchema);
