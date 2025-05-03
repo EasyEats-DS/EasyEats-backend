@@ -315,8 +315,13 @@ exports.getOrdersByUserId = async (userId) => {
       throw err;
     }
 
-    // Query orders by userId
-    const orders = await Order.find({ userId }).lean();
+    // Query orders by userId and include all fields
+    const orders = await Order.find({ userId })
+      .populate({
+        path: 'restaurantId',
+        select: 'name location' 
+      })
+      .lean();
 
     // If no orders exist, throw 404 
     if (!orders.length) {
