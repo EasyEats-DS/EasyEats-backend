@@ -10,7 +10,7 @@ exports.createNotification = async (notificationData) => {
       userId: notificationData.userId,
       type: notificationData.type,
       message: notificationData.message,
-      channel: notificationData.channel.toUpperCase(),
+      channels: notificationData.channels,
       status: 'PENDING',
       metadata: {
         email: notificationData.email,
@@ -22,12 +22,20 @@ exports.createNotification = async (notificationData) => {
     const savedNotification = await notification.save();
     console.log('Notification saved:', savedNotification);
 
-    // Send notification based on channel
-    if (notification.channel === 'EMAIL' && notificationData.email) {
-      await sendEmail(notificationData.email, notificationData.subject, notificationData.message);
-    } else if (notification.channel === 'SMS' && notificationData.phone) {
-      await sendSMS(notificationData.phone, notificationData.message);
+    // Send notifications through all specified channels
+    const sendPromises = [];
+    if (notification.channels.includes('EMAIL') && notificationData.email) {
+      sendPromises.push(
+        sendEmail(notificationData.email, notificationData.subject, notificationData.message)
+      );
     }
+    if (notification.channels.includes('SMS') && notificationData.phone) {
+      sendPromises.push(
+        sendSMS(notificationData.phone, notificationData.message)
+      );
+    }
+
+    await Promise.all(sendPromises);
 
     // Update notification status
     savedNotification.status = 'SENT';
@@ -68,14 +76,40 @@ exports.updateNotificationStatus = async (notificationId, status) => {
 
 exports.sendOrderConfirmation = async (orderData) => {
   try {
+    const { preferredChannel = 'EMAIL' } = orderData;
+    const channels = [];
+    
+    // Map customer contact fields to expected fields
+    const email = orderData.customerEmail || orderData.email;
+    const phone = orderData.customerPhone || orderData.phone;
+    const total = orderData.totalAmount || orderData.total;
+
+    switch (preferredChannel) {
+      case 'EMAIL':
+        if (!email) throw new Error('Email address is required for EMAIL channel');
+        channels.push('EMAIL');
+        break;
+      case 'SMS':
+        if (!phone) throw new Error('Phone number is required for SMS channel');
+        channels.push('SMS');
+        break;
+      case 'BOTH':
+        if (!email) throw new Error('Email address is required for BOTH channels');
+        if (!phone) throw new Error('Phone number is required for BOTH channels');
+        channels.push('EMAIL', 'SMS');
+        break;
+      default:
+        throw new Error('Invalid preferredChannel. Must be EMAIL, SMS, or BOTH');
+    }
+
     const notificationData = {
       orderId: orderData.orderId,
       userId: orderData.userId,
       type: 'ORDER_CONFIRMATION',
-      message: `Your order #${orderData.orderId} has been confirmed. Total amount: $${orderData.total}`,
-      channel: orderData.preferredChannel || 'EMAIL',
-      email: orderData.email,
-      phone: orderData.phone,
+      message: `Your order #${orderData.orderId} has been confirmed. Total amount: $${total}`,
+      channels,
+      email,
+      phone,
       subject: 'Order Confirmation - EasyEats'
     };
 
@@ -83,19 +117,40 @@ exports.sendOrderConfirmation = async (orderData) => {
     return { success: true, notification };
   } catch (error) {
     console.error('Error sending order confirmation:', error);
-    error.statusCode = 500;
+    error.statusCode = error.message.includes('required') ? 400 : 500;
     throw error;
   }
 };
 
 exports.sendDeliveryUpdate = async (deliveryData) => {
   try {
+    const { preferredChannel = 'EMAIL' } = deliveryData;
+    const channels = [];
+
+    switch (preferredChannel) {
+      case 'EMAIL':
+        if (!deliveryData.email) throw new Error('Email address is required for EMAIL channel');
+        channels.push('EMAIL');
+        break;
+      case 'SMS':
+        if (!deliveryData.phone) throw new Error('Phone number is required for SMS channel');
+        channels.push('SMS');
+        break;
+      case 'BOTH':
+        if (!deliveryData.email) throw new Error('Email address is required for BOTH channels');
+        if (!deliveryData.phone) throw new Error('Phone number is required for BOTH channels');
+        channels.push('EMAIL', 'SMS');
+        break;
+      default:
+        throw new Error('Invalid preferredChannel. Must be EMAIL, SMS, or BOTH');
+    }
+
     const notificationData = {
       orderId: deliveryData.orderId,
       userId: deliveryData.userId,
       type: 'DELIVERY_UPDATE',
       message: `Your order #${deliveryData.orderId} status has been updated to: ${deliveryData.status}`,
-      channel: deliveryData.preferredChannel || 'EMAIL',
+      channels,
       email: deliveryData.email,
       phone: deliveryData.phone,
       subject: 'Delivery Update - EasyEats'
@@ -105,7 +160,7 @@ exports.sendDeliveryUpdate = async (deliveryData) => {
     return { success: true, notification };
   } catch (error) {
     console.error('Error sending delivery update:', error);
-    error.statusCode = 500;
+    error.statusCode = error.message.includes('required') ? 400 : 500;
     throw error;
   }
 };

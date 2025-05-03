@@ -140,10 +140,11 @@ services:
     environment:
       - PORT=5005
       - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_notifications?retryWrites=true&w=majority
-      - KAFKA_BROKER=kafka:9092  # Changed from localhost:9092
+      - KAFKA_BROKER=kafka:9092
       - EMAIL_USER=radalapuththu@gmail.com
-      - EMAIL_APP_PASSWORD=lltaxfluinkzxbxs
+      - EMAIL_PASSWORD=lltaxfluinkzxbxs
       - TWILIO_ACCOUNT_SID=AC4bae37c77902e4e82bd53da5f8fed20d
+      - TWILIO_AUTH_TOKEN=bba99268c95c5d2915dada3cc32053d7
       - TWILIO_PHONE_NUMBER=+15868003046
     networks:
       - EasyEats-network

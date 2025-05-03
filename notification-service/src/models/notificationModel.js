@@ -14,11 +14,11 @@ const notificationSchema = new mongoose.Schema({
         enum: ['ORDER_CONFIRMATION', 'DELIVERY_UPDATE'],
         required: true
     },
-    channel: {
+    channels: [{
         type: String,
         enum: ['EMAIL', 'SMS'],
         required: true
-    },
+    }],
     message: {
         type: String,
         required: true
