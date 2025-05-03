@@ -1,5 +1,5 @@
 # Use Node.js LTS version as base image
-FROM node:18-alpine
+FROM node:18
 
 # Set working directory
 WORKDIR /app
@@ -11,10 +11,10 @@ COPY package*.json ./
 RUN npm install
 
 # Copy source code
-COPY . .
+COPY src/ ./src
 
 # Expose port
 EXPOSE 5005
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev"]
