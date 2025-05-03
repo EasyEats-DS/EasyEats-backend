@@ -58,11 +58,21 @@ const sendEmail = async (to, subject, data) => {
     }
 
     try {
+        // Log the incoming data for debugging
+        console.log('Email data received:', { to, subject, data });
+
         const mailOptions = {
             from: `"EasyEats" <${process.env.EMAIL_USER}>`,
             to,
             subject,
-            html: generateEmailContent(subject, data)
+            // Pass the full data object to generateEmailContent
+            html: generateEmailContent(subject, {
+                orderId: data.orderId,
+                totalAmount: data.totalAmount || data.total,
+                estimatedDeliveryTime: data.estimatedDeliveryTime,
+                items: data.items,
+                message: data.message
+            })
         };
 
         console.log('Attempting to send email to:', to);
@@ -77,14 +87,14 @@ const sendEmail = async (to, subject, data) => {
 
 const generateEmailContent = (subject, data) => {
     switch (subject) {
-        case 'Order Confirmation':
+        case 'Order Confirmation - EasyEats':
             return `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                     <h2 style="color: #e65100; margin-bottom: 20px;">Thanks for your order!</h2>
-                    <p style="font-size: 16px; color: #333;">We're excited to prepare your delicious meal.</p>
+                    <p style="font-size: 16px; color: #333;">${data.message}</p>
                     
                     <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                        <p style="margin: 5px 0;"><strong>Order ID:</strong> ${data.orderId.substring(0, 8)}</p>
+                        <p style="margin: 5px 0;"><strong>Order ID:</strong> ${data.orderId}</p>
                         <p style="margin: 5px 0;"><strong>Total:</strong> $${data.totalAmount}</p>
                         ${data.estimatedDeliveryTime ? `<p style="margin: 5px 0;"><strong>Estimated Delivery:</strong> ${data.estimatedDeliveryTime}</p>` : ''}
                     </div>
@@ -104,7 +114,6 @@ const generateEmailContent = (subject, data) => {
                     ` : ''}
 
                     <p style="margin-top: 20px; color: #666;">We'll keep you updated on your order status.</p>
-                    <p style="color: #666;">Thank you for choosing EasyEats!</p>
                 </div>
             `;
         case 'Delivery Update':

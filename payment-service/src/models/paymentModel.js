@@ -27,13 +27,11 @@ const paymentSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: [
-      // Internal payment statuses
       'PENDING',
       'SUCCESS',
       'FAILED',
       'REFUNDED',
       'CANCELLED',
-      // Stripe payment statuses
       'requires_payment_method',
       'requires_confirmation',
       'requires_action',
