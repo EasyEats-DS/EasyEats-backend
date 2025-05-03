@@ -2,7 +2,7 @@ const { Kafka } = require('kafkajs');
 
 const kafka = new Kafka({
   clientId: 'user-service',
-  brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
+  brokers: [process.env.KAFKA_BROKER || 'kafka:9092']
 });
 
 const producer = kafka.producer();
@@ -52,7 +52,9 @@ const initKafkaConsumer = async () => {
               responseData = await userController.getNearbyDrivers(payload);
               break;
             case 'createUser':
+              console.log('Creating user with payload:', payload);
               responseData = await userController.createUser(payload);
+              console.log('User created:', responseData);
               statusCode = 201;
               break;
             case 'getUser':
