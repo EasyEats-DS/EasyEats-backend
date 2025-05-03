@@ -15,8 +15,7 @@ router.post('/order-confirmation', async (req, res) => {
         userId: req.body.userId,
         email: req.body.customerEmail,
         phone: req.body.customerPhone,
-        total: req.body.totalAmount, // Changed from req.body.orderDetails.total
-        preferredChannel: req.body.preferredChannel || 'EMAIL'
+        total: req.body.totalAmount
       }
     }, 15000); // explicitly set timeout to 15 seconds
     
@@ -40,8 +39,7 @@ router.post('/delivery-update', async (req, res) => {
         userId: req.body.userId,
         status: req.body.status,
         email: req.body.customerEmail,
-        phone: req.body.customerPhone,
-        preferredChannel: req.body.preferredChannel || 'EMAIL'
+        phone: req.body.customerPhone
       }
     }, 15000); // explicitly set timeout to 15 seconds
     

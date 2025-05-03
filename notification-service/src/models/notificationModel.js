@@ -14,11 +14,6 @@ const notificationSchema = new mongoose.Schema({
         enum: ['ORDER_CONFIRMATION', 'DELIVERY_UPDATE'],
         required: true
     },
-    channels: [{
-        type: String,
-        enum: ['EMAIL', 'SMS'],
-        required: true
-    }],
     message: {
         type: String,
         required: true
@@ -29,8 +24,13 @@ const notificationSchema = new mongoose.Schema({
         default: 'PENDING'
     },
     metadata: {
-        type: Map,
-        of: String
+        email: String,
+        phone: String,
+        subject: String,
+        sentVia: {
+            email: { type: Boolean, default: false },
+            sms: { type: Boolean, default: false }
+        }
     },
     createdAt: {
         type: Date,
