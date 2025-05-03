@@ -91,7 +91,7 @@ const handleAcceptOrder = async (io, socket, { driver, order }) => {
       console.log("aaaaaaaaaaaaaaa__________");
       io.to(customerSocket).emit('order_assigned', { name, order });
       
-      const f = await axios.post(`http://localhost:5003/deliveries`, {
+      const f = await axios.post(`http://api-gateway:5003/deliveries`, {
         orderId: order._id,
         products: order.products,
         totalPrice: order.totalAmount,
@@ -153,12 +153,13 @@ const handleLiveLocation = async (io, { location, user }) => {
     if (!location || !user) {
       throw new Error('Invalid location data');
     }
-
+    console.log("location",location);
+    console.log("user",user);
     const loc = [location.latitude, location.longitude];
 
     
 
-      await axios.post('http://localhost:5003/users/updateLocation', {
+      await axios.post('http://api-gateway:5003/users/updateLocation', {
         location: location,
         customerId: user._id
       });
