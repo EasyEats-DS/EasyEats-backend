@@ -3,7 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 
 const kafka = new Kafka({
   clientId: 'api-gateway',
-  brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
+  brokers: [process.env.KAFKA_BROKER || 'kafka:9092']
 });
 
 const producer = kafka.producer();
@@ -23,7 +23,7 @@ const initKafkaConsumer = async () => {
   
   // Subscribe to response topics from other services
   await consumer.subscribe({ 
-    topics: ['user-response', 'order-response', 'restaurant-response', 'auth-responses'], 
+    topics: ['user-response', 'order-response', 'restaurant-response', 'auth-responses', 'payment-response', 'notification-response',"delivery-response"], 
     fromBeginning: false 
   });
   console.log('Subscribed to response topics');

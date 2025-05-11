@@ -2,19 +2,37 @@ require("dotenv").config();
 const express = require("express");
 const userRoutes = require("./routes/userRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+
+const deliveryRoutes = require("./routes/deliveryRoutes");
+
+
 const restaurantRoutes = require("./routes/resturantRoutes");
 const authRoutes = require("./routes/authRoutes");
 const { initKafkaProducer, initKafkaConsumer } = require("./services/kafkaService");
+const cors = require("cors");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5003;
 
 // Middleware
 app.use(express.json());
+app.use(cors());
 
 // Routes
 app.use("/users", userRoutes);
 app.use("/orders", orderRoutes);
+app.use("/payments", paymentRoutes);
+app.use("/notifications", notificationRoutes);
+
+app.use("/deliveries", deliveryRoutes);
+
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).send('API Gateway is healthy');
+});
 app.use("/restaurants", restaurantRoutes);
 app.use('/auth',authRoutes)
 

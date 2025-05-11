@@ -2,7 +2,7 @@ const { Kafka } = require('kafkajs');
 
 const kafka = new Kafka({
   clientId: 'order-service',
-  brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
+  brokers: [process.env.KAFKA_BROKER || 'kafka:9092']
 });
 
 const producer = kafka.producer();
@@ -36,7 +36,8 @@ const initKafkaConsumer = async () => {
         // Handle API gateway requests
         try {
           const { action, payload, correlationId } = messageValue;
-          
+          console.log('Received order request:', messageValue);
+          console.log('Processing order request:', action, payload, correlationId);
           let responseData;
           let success = true;
           let statusCode = 200;
@@ -48,6 +49,9 @@ const initKafkaConsumer = async () => {
               break;
             case 'getOrder':
               responseData = await orderController.getOrderById(payload.orderId);
+              break;
+            case 'getAllOrders':
+              responseData = await orderController.getAllOrders();
               break;
             case "getOrders":
               responseData = await orderController.getOrders(payload);

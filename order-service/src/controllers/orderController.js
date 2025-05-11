@@ -4,17 +4,19 @@ const mongoose = require('mongoose');
 
 exports.createOrder = async (orderData) => {
   try {
-    const { userId, products, totalAmount } = orderData;
+    const { userId, restaurantId, products, totalAmount, paymentMethod } = orderData;
     
-    if (!userId || !products || !totalAmount) {
+    if (!userId || !restaurantId || !products || !totalAmount || !paymentMethod) {
       throw new Error('Missing required fields');
     }
     
     // Create a new order
     const newOrder = new Order({
       userId,
+      restaurantId,
       products,
       totalAmount,
+      paymentMethod,
       status: 'pending'
     });
     
@@ -27,7 +29,10 @@ exports.createOrder = async (orderData) => {
       action: 'validate',
       timestamp: new Date().toISOString()
     });
-    
+     // console.log('Order created:', savedOrder);
+    // await produceMessage('order_placed',
+    //   savedOrder
+    // )
     return savedOrder;
   } catch (error) {
     console.error('Error creating order:', error);
@@ -51,6 +56,19 @@ exports.getOrderById = async (orderId) => {
   }
 };
 
+// Get all orders (for admin)
+exports.getAllOrders = async () => {
+  try {
+    // pull all orders
+    const orders = await Order.find().lean();
+    return { orders };
+  } catch (error) {
+    console.error('Error fetching all orders:', error);
+    // throw an object so kafka consumer can forward statusCode/message
+    throw { statusCode: 500, message: 'Failed to fetch all orders' };
+  }
+};
+
 // Get all orders with pagination (user‑service style)
 exports.getOrders = async (query) => {
   try {
@@ -66,7 +84,7 @@ exports.getOrders = async (query) => {
       data: {
         orders,
         pagination: {
-          total:       totalOrders,
+          total: totalOrders,
           totalPages:  Math.ceil(totalOrders / limit),
           currentPage: page,
           limit
@@ -77,47 +95,54 @@ exports.getOrders = async (query) => {
     console.error('Error fetching orders:', error);
     throw {
       statusCode: 500,
-      message:    'Failed to fetch orders',
-      details:    error.message
+      message: 'Failed to fetch orders',
+      details: error.message
     };
   }
 };
 
-//Update the status of an order
+
+// Update the status of an order
 exports.updateOrderStatus = async (orderId, status) => {
-  try {
-    if (!orderId) {
-      const err = new Error('Order ID is required');
-      err.statusCode = 400;
-      throw err;
-    }
-    if (!mongoose.Types.ObjectId.isValid(orderId)) {
-      const err = new Error('Invalid order ID format');
-      err.statusCode = 400;
-      throw err;
-    }
-    const allowed = ['pending','processing','shipped','delivered','cancelled'];
-    if (!allowed.includes(status)) {
-      const err = new Error(`Invalid status: ${status}`);
-      err.statusCode = 400;
-      throw err;
-    }
-    const order = await Order.findById(orderId);
-    if (!order) {
-      const err = new Error('Order not found');
-      err.statusCode = 404;
-      throw err;
-    }
-    order.status = status;
-    order.updatedAt = Date.now();
-    const updated = await order.save();
-    // notify other services
-    await produceMessage('order-status', { orderId, userId: order.userId, status, timestamp: new Date().toISOString() });
-    return updated;
-  } catch (error) {
-    console.error('Error updating order status:', error);
-    throw error;
+  // 1Validate orderId and status as you already do
+  if (!orderId) {
+    const err = new Error('Order ID is required');
+    err.statusCode = 400;
+    throw err;
   }
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    const err = new Error('Invalid order ID format');
+    err.statusCode = 400;
+    throw err;
+  }
+  const allowed = ['pending','processing','shipped','delivered','cancelled'];
+  if (!allowed.includes(status)) {
+    const err = new Error(`Invalid status: ${status}`);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const updated = await Order.findByIdAndUpdate(
+    orderId,
+    { status, updatedAt: Date.now() },
+    { new: true }        
+  );
+
+  if (!updated) {
+    const err = new Error('Order not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  //  Emit your Kafka event as before
+  await produceMessage('order-status', {
+    orderId,
+    userId: updated.userId,
+    status,
+    timestamp: new Date().toISOString()
+  });
+
+  return updated;
 };
 
 // Delete an order by its ID
@@ -151,58 +176,128 @@ exports.deleteOrderById = async (orderId) => {
   }
 };
 
-// Update an order by its ID
+
+// exports.updateOrder = async (orderId, orderData) => {
+//   try {
+//     // — 1. Validate orderId presence & format
+//     if (!orderId) {
+//       const err = new Error('Order ID is required');
+//       err.statusCode = 400;
+//       throw err;
+//     }
+//     if (!mongoose.Types.ObjectId.isValid(orderId)) {
+//       const err = new Error('Invalid order ID format');
+//       err.statusCode = 400;
+//       throw err;
+//     }
+
+//     // — 2. Fetch existing order to get restaurantId
+//     const existingOrder = await Order.findById(orderId);
+//     if (!existingOrder) {
+//       const err = new Error('Order not found');
+//       err.statusCode = 404;
+//       throw err;
+//     }
+//     const { restaurantId } = existingOrder;
+
+//     // — 3. Validate restaurant exists & grab its menu
+//     const restaurant = await produceMessage('restaurant-request', {
+//       action:  'getRestaurant',
+//       payload: { id: restaurantId }
+//     });
+//     if (!restaurant || !restaurant._id) {
+//       const err = new Error('Restaurant not found');
+//       err.statusCode = 404;
+//       throw err;
+//     }
+//     const menuIds = restaurant.menu.map(item => item._id.toString());
+
+//     // — 4. If products[] included in update, validate each productId
+//     if (orderData.products) {
+//       if (!Array.isArray(orderData.products) || orderData.products.length === 0) {
+//         const err = new Error('Products array is required');
+//         err.statusCode = 400;
+//         throw err;
+//       }
+//       for (const prod of orderData.products) {
+//         if (!menuIds.includes(prod.productId)) {
+//           const err = new Error(
+//             `Menu item ${prod.productId} is not available at restaurant ${restaurantId}`
+//           );
+//           err.statusCode = 400;
+//           throw err;
+//         }
+//       }
+//     }
+
+//     // — 5. Validate totalAmount & status (your existing logic)
+//     const { products, totalAmount, status } = orderData;
+//     if (typeof totalAmount !== 'number' || totalAmount <= 0) {
+//       const err = new Error('Valid totalAmount is required');
+//       err.statusCode = 400;
+//       throw err;
+//     }
+//     const allowed = ['pending','processing','shipped','delivered','cancelled'];
+//     if (status && !allowed.includes(status)) {
+//       const err = new Error(`Invalid status: ${status}`);
+//       err.statusCode = 400;
+//       throw err;
+//     }
+
+//     // — 6. Perform the update
+//     const updated = await Order.findByIdAndUpdate(
+//       orderId,
+//       {
+//         ...(orderData.products    && { products    }),
+//         ...(orderData.totalAmount && { totalAmount }),
+//         ...(orderData.status      && { status      }),
+//         updatedAt: Date.now()
+//       },
+//       { new: true }
+//     );
+//     if (!updated) {
+//       const err = new Error('Order not found');
+//       err.statusCode = 404;
+//       throw err;
+//     }
+//     return updated;
+
+//   } catch (error) {
+//     console.error('Error updating order:', error);
+//     throw error;
+//   }
+// };
+
 exports.updateOrder = async (orderId, orderData) => {
   try {
-    // Validate orderId presence & format
-    if (!orderId) {
-      const err = new Error('Order ID is required');
-      err.statusCode = 400;
-      throw err;
-    }
-    if (!mongoose.Types.ObjectId.isValid(orderId)) {
-      const err = new Error('Invalid order ID format');
-      err.statusCode = 400;
-      throw err;
-    }
+    // 1. Validate orderId presence & format
+    if (!orderId) {/*…*/}
+    // 2. Check order exists
+    const existingOrder = await Order.findById(orderId);
+    if (!existingOrder) {/*…*/}
 
-    // Validate required fields
-    const { products, totalAmount, status } = orderData;
-    if (!Array.isArray(products) || products.length === 0) {
-      const err = new Error('Products array is required');
-      err.statusCode = 400;
-      throw err;
-    }
-    if (typeof totalAmount !== 'number' || totalAmount <= 0) {
-      const err = new Error('Valid totalAmount is required');
-      err.statusCode = 400;
-      throw err;
-    }
-    // validate status
-    const allowed = ['pending','processing','shipped','delivered','cancelled'];
-    if (status && !allowed.includes(status)) {
-      const err = new Error(`Invalid status: ${status}`);
-      err.statusCode = 400;
-      throw err;
-    }
+    // 3. Your existing products/totalAmount/status validations
+    const { products, totalAmount, status, paymentMethod } = orderData;
+    if (!Array.isArray(products) || products.length === 0) {/*…*/}
+    if (typeof totalAmount !== 'number' || totalAmount <= 0) {/*…*/}
+    const allowed = [/*…*/];
+    if (status && !allowed.includes(status)) {/*…*/}
 
-    // Perform the update and return the new document
+    // 4. Perform the update
     const updated = await Order.findByIdAndUpdate(
       orderId,
-      { products, totalAmount, ...(status && { status }), updatedAt: Date.now() },
+      { products, totalAmount, ...(status && { status }), ...(paymentMethod && { paymentMethod }), updatedAt: Date.now() },
       { new: true }
     );
-    if (!updated) {
-      const err = new Error('Order not found');
-      err.statusCode = 404;
-      throw err;
-    }
+    if (!updated) {/*…*/}
     return updated;
   } catch (error) {
     console.error('Error updating order:', error);
     throw error;
   }
 };
+
+
 
 exports.getOrdersByUserId = async (userId) => {
   try {
@@ -220,8 +315,13 @@ exports.getOrdersByUserId = async (userId) => {
       throw err;
     }
 
-    // Query orders by userId
-    const orders = await Order.find({ userId }).lean();
+    // Query orders by userId and include all fields
+    const orders = await Order.find({ userId })
+      .populate({
+        path: 'restaurantId',
+        select: 'name location' 
+      })
+      .lean();
 
     // If no orders exist, throw 404 
     if (!orders.length) {

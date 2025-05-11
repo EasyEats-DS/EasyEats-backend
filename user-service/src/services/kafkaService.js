@@ -2,7 +2,7 @@ const { Kafka } = require('kafkajs');
 
 const kafka = new Kafka({
   clientId: 'user-service',
-  brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
+  brokers: [process.env.KAFKA_BROKER || 'kafka:9092']
 });
 
 const producer = kafka.producer();
@@ -42,8 +42,19 @@ const initKafkaConsumer = async () => {
           let statusCode = 200;
           
           switch (action) {
+            case 'updateUserLocation':
+              responseData = await userController.updateLocation(payload.location, payload.customerId);
+              break;
+            case 'login':
+              responseData = await userController.login(payload.email, payload.password);
+              break;
+            case 'getNearbyDrivers':
+              responseData = await userController.getNearbyDrivers(payload);
+              break;
             case 'createUser':
+              console.log('Creating user with payload:', payload);
               responseData = await userController.createUser(payload);
+              console.log('User created:', responseData);
               statusCode = 201;
               break;
             case 'getUser':
@@ -67,7 +78,7 @@ const initKafkaConsumer = async () => {
           
           // Send response back to API gateway
           await producer.send({
-            topic: 'user-response',
+            topic: messageValue.replyTo || 'user-response', // <-- prioritize replyTo if available
             messages: [
               { 
                 value: JSON.stringify({

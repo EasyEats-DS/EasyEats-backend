@@ -2,7 +2,7 @@ const { Kafka } = require('kafkajs');
 
 const kafka = new Kafka({
   clientId: 'restaurant-service',
-  brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
+  brokers: [process.env.KAFKA_BROKER || 'kafka:9092']
 });
 
 const producer = kafka.producer();
@@ -32,12 +32,16 @@ const initKafkaConsumer = async () => {
       if (topic === 'restaurant-request') {
         try {
           const { action, payload, correlationId } = messageValue;
-          
+          console.log('Received restaurant request:', messageValue);
+          console.log('Processing restaurant request:', action, payload, correlationId);  
           let responseData;
           let success = true;
           let statusCode = 200;
           
           switch (action) {
+            case 'getAllRestaurants':
+              responseData = await restaurantController.getAllRestaurants(payload);
+              break;
             case 'createRestaurant':
               responseData = await restaurantController.createRestaurant(payload);
               statusCode = 201;
@@ -64,6 +68,18 @@ const initKafkaConsumer = async () => {
               break;
             case 'deleteRestaurant':
               responseData = await restaurantController.deleteRestaurantById(payload.id);
+              break;
+            case 'getAllRestaurants':
+              responseData = await restaurantController.getAllRestaurants();
+              break;
+            case 'getRestaurantMenu':
+              responseData = await restaurantController.getRestaurantMenu(payload.restaurantId);
+              break;
+            case 'deleteMenuItem':
+              responseData = await restaurantController.deleteMenuItem(
+                payload.restaurantId, 
+                payload.menuItemId
+              );
               break;
             default:
               success = false;

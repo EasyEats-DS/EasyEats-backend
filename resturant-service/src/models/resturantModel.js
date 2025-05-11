@@ -25,6 +25,10 @@ const RestaurantSchema = new mongoose.Schema({
     email: String,
     website: String
   },
+  ResturantCoverImageUrl: {
+    type: String,
+    default: "https://res.cloudinary.com/denqj4zdy/image/upload/v1745770799/04_Fenchurch-Interior_2024_4548_2-3840x2160_eno1kw.jpg"
+  },
   menu: [
     {
       name: {
@@ -40,7 +44,8 @@ const RestaurantSchema = new mongoose.Schema({
       isAvailable: {
         type: Boolean,
         default: true
-      }
+      },
+      imageUrl: { type: String }
     }
   ],
   ownerId: {
@@ -50,6 +55,16 @@ const RestaurantSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  position: {
+    type: {
+      type: String,
+      default: 'Point'
+    },
+    coordinates: {
+      type: [Number],
+      required: true
+    }
   },
   createdAt: {
     type: Date,
@@ -61,5 +76,6 @@ const RestaurantSchema = new mongoose.Schema({
   }
 });
 
+RestaurantSchema.index({ position: '2dsphere' });
 
 module.exports = mongoose.model('Restaurant', RestaurantSchema);
