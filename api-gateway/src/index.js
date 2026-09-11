@@ -11,6 +11,7 @@ const deliveryRoutes = require("./routes/deliveryRoutes");
 const restaurantRoutes = require("./routes/resturantRoutes");
 const authRoutes = require("./routes/authRoutes");
 const { initKafkaProducer, initKafkaConsumer } = require("./services/kafkaService");
+const connectDB = require("./config/db");
 const cors = require("cors");
 
 const app = express();
@@ -50,6 +51,11 @@ app.use((err, req, res, next) => {
 // Start server
 const startServer = async () => {
   try {
+    // The gateway had a MONGO_URI but never opened the connection; the revoked
+    // token lookup in authMiddleware needs it.
+    await connectDB();
+    console.log("MongoDB connected");
+
     // Initialize Kafka Producer
     await initKafkaProducer();
     console.log("Kafka Producer initialized");

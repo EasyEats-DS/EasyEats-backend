@@ -25,9 +25,15 @@ const initKafka = async () => {
       
       try {
         let response;
+        authController = require('../controller/authController');
         if (action === 'login') {
-          authController = require('../controller/authController');
           response = await authController.login(payload);
+        } else if (action === 'logout') {
+          response = await authController.logout(payload);
+        } else {
+          // Previously an unknown action fell through and was answered with
+          // "success" and an undefined body, which reads as a working call.
+          throw new Error(`Unknown auth action: ${action}`);
         }
 
         await producer.send({

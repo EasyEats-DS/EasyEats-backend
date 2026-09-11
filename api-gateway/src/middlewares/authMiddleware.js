@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
+const { RevokedToken, hashToken } = require('../models/revokedTokenModel');
 
 const verifyToken = async (req, res, next) => {
   try {
@@ -18,7 +19,15 @@ const verifyToken = async (req, res, next) => {
     // Verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('Verified token data:', decoded);
-    
+
+    // A good signature is not enough. A token that has been logged out stays
+    // cryptographically valid until it expires, so the only thing standing
+    // between a "signed out" session and full access is this lookup.
+    if (await RevokedToken.exists({ tokenHash: hashToken(token) })) {
+      console.log('Rejected a revoked token for user:', decoded.id);
+      return res.status(401).json({ message: 'Session ended. Please log in again.' });
+    }
+
   
     if (!decoded.role) {
       console.error('No role found in token');
