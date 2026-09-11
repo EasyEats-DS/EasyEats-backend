@@ -19,38 +19,60 @@ router.delete('/:deliveryId', async (req, res) => {
   }
 })
 
+/**
+ * What a delivery's status means for the customer's order.
+ *
+ * Both delivery vocabularies are mapped: the schema's own (`picked_up`,
+ * `delivered`) and the older one earlier clients sent (`in_progress`,
+ * `completed`). An unmapped status used to leave `orderStatus` undefined, which
+ * the order service then rejected as an invalid status -- turning "Start
+ * Delivery" into a 500 even though the delivery itself had updated fine.
+ */
+const ORDER_STATUS_BY_DELIVERY_STATUS = {
+  assigned: 'processing',
+  picked_up: 'shipped',
+  in_progress: 'shipped',
+  delivered: 'delivered',
+  completed: 'delivered',
+  cancelled: 'cancelled',
+};
+
 router.patch('/:deliveryId/status', async (req, res) => {
   console.log("update delivery status________________________",req.body, req.params.deliveryId);
 
-  let orderStatus;
-  if(req.body.status === 'completed'){
-     orderStatus = "delivered";
-  }
-  if(req.body.status === 'in_progress'){
-     orderStatus = "shipped";
-  }
-  
+  const orderStatus = ORDER_STATUS_BY_DELIVERY_STATUS[req.body.status];
+
   try {
     const deliveryResult = await sendMessageWithResponse('delivery-request', {
       action: 'updateStatus',
-      payload: {status: req.body.status, 
+      payload: {status: req.body.status,
         deliveryId: req.params.deliveryId
-      }, 
+      },
       replyTo: 'delivery-response'
     });
 
-    const result = await sendMessageWithResponse("order-request", {
-      action: "updateOrderStatus",
-      payload: { orderId: deliveryResult.orderId, status: orderStatus },
-      
-      
-    });
+    // The delivery is the source of truth here; mirroring it onto the order is
+    // a convenience. If that mirror fails, the driver still gets a success --
+    // otherwise a bookkeeping error would look like the delivery not starting.
+    if (orderStatus && deliveryResult?.orderId) {
+      try {
+        await sendMessageWithResponse("order-request", {
+          action: "updateOrderStatus",
+          payload: { orderId: deliveryResult.orderId, status: orderStatus },
+        });
+      } catch (orderError) {
+        console.error('Delivery updated but order status did not follow:', orderError.message);
+      }
+    } else if (!orderStatus) {
+      console.warn(`No order status mapped for delivery status "${req.body.status}"`);
+    }
+
     console.log("deliveryResult________________________",deliveryResult);
     return res.status(200).json(deliveryResult);
   } catch (error) {
     console.error('Error updating delivery status:', error.message);
-    return res.status(500).json({ 
-      message: error.message || 'Error updating delivery status' 
+    return res.status(500).json({
+      message: error.message || 'Error updating delivery status'
     });
   }
 

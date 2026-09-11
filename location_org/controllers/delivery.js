@@ -134,6 +134,16 @@ exports.updateDeliveryStatus = async (diverId,statuss) => {
       throw new Error('Delivery not found');
     }
 
+    // Keep the dispatch assignment in step with the delivery it mirrors. This
+    // is required here, not merely convenient: a driver whose assignment stays
+    // open is counted busy and is never offered another order. Required lazily
+    // because dispatchService loads this module.
+    try {
+      await require('../services/dispatchService').syncAssignmentFromDelivery(updatedDelivery);
+    } catch (syncError) {
+      console.error('Failed to sync assignment from delivery:', syncError.message);
+    }
+
     return updatedDelivery;
   } catch (err) {
     console.error("Error updating delivery status:", err.message);

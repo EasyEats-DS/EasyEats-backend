@@ -13,6 +13,10 @@ const server = http.createServer(app);
 const io = configureSocket(server);
 socketController(io);
 
+// Handed to the dispatcher so paths without socket context -- the Kafka status
+// write, for one -- can still advance assignments and notify the tracking room.
+dispatch.setIo(io);
+
 // Initialize data and start server
 server.listen(PORT, async () => {
   try {

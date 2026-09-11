@@ -4,12 +4,29 @@ const mongoose = require('mongoose');
 
 exports.createOrder = async (orderData) => {
   try {
-    const { userId, restaurantId, products, totalAmount, paymentMethod } = orderData;
-    
+    const {
+      userId,
+      restaurantId,
+      products,
+      totalAmount,
+      paymentMethod,
+      deliveryLocation,
+      deliveryAddress,
+    } = orderData;
+
     if (!userId || !restaurantId || !products || !totalAmount || !paymentMethod) {
       throw new Error('Missing required fields');
     }
-    
+
+    // Only store a drop-off when it is a usable GeoJSON pair. A half-formed
+    // position is worse than none: dispatch would route drivers to it instead
+    // of falling back to the customer's known location.
+    const coordinates = deliveryLocation?.coordinates;
+    const hasDropoff =
+      Array.isArray(coordinates) &&
+      coordinates.length === 2 &&
+      coordinates.every((value) => Number.isFinite(Number(value)));
+
     // Create a new order
     const newOrder = new Order({
       userId,
@@ -17,7 +34,11 @@ exports.createOrder = async (orderData) => {
       products,
       totalAmount,
       paymentMethod,
-      status: 'pending'
+      status: 'pending',
+      ...(hasDropoff && {
+        deliveryLocation: { type: 'Point', coordinates: coordinates.map(Number) },
+      }),
+      ...(deliveryAddress && { deliveryAddress }),
     });
     
     const savedOrder = await newOrder.save();

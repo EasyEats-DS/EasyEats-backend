@@ -40,13 +40,38 @@ const OrderSchema = new mongoose.Schema({
     enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
     default: "pending",
   },
+  /**
+   * Where the food is actually going.
+   *
+   * Until now the drop-off was inferred from the customer's last reported
+   * geolocation, which is wherever their browser happened to be when it last
+   * had permission -- not necessarily where they want dinner. GeoJSON order,
+   * [longitude, latitude], matching every other position in the system.
+   *
+   * Optional so orders placed before this existed still load; dispatch falls
+   * back to the customer's stored position when it is absent.
+   */
+  deliveryLocation: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point',
+    },
+    coordinates: {
+      type: [Number],
+      default: undefined,
+    },
+  },
+
+  /** Flat number, landmark, gate code -- what the driver reads at the door. */
+  deliveryAddress: {
+    type: String,
+    trim: true,
+  },
+
   createdAt: {
     type: Date,
     default: Date.now,
-  },
-  restaurantId: {
-    type: String,
-    required: true
   },
   updatedAt: {
     type: Date,

@@ -152,6 +152,55 @@ function withConnectedFallback(candidates = [], connectedDriverIds = []) {
   return [...candidates, ...fallback];
 }
 
+/**
+ * The assignment state that mirrors a given delivery status.
+ *
+ * Two vocabularies reach this: the schema's own (`picked_up`, `delivered`) and
+ * the older one some clients still send (`in_progress`, `completed`). Both are
+ * accepted, because a status that fails to map leaves the assignment open and
+ * its driver permanently counted as busy.
+ *
+ * Returns null for anything unrecognised rather than guessing a state.
+ */
+const ASSIGNMENT_STATE_BY_DELIVERY_STATUS = {
+  assigned: 'accepted',
+  picked_up: 'picked_up',
+  in_progress: 'picked_up',
+  delivered: 'delivered',
+  completed: 'delivered',
+  cancelled: 'cancelled',
+};
+
+function assignmentStateForDeliveryStatus(status) {
+  return ASSIGNMENT_STATE_BY_DELIVERY_STATUS[status] || null;
+}
+
+/**
+ * Where this order is actually going.
+ *
+ * The chosen drop-off wins when the customer picked one at checkout. Otherwise
+ * it falls back to the customer's stored position, which is only as good as the
+ * last location their browser reported -- fine as a fallback, wrong as a
+ * default, and the reason orders used to be routed to wherever the customer
+ * last opened the app.
+ */
+function resolveDropoff(snapshot) {
+  const chosen = snapshot?.deliveryLocation?.coordinates;
+  if (Array.isArray(chosen) && chosen.length === 2 && chosen.every((v) => Number.isFinite(Number(v)))) {
+    return { coordinates: chosen.map(Number), source: 'chosen' };
+  }
+
+  const stored = snapshot?.customer?.position?.coordinates;
+  if (Array.isArray(stored) && stored.length === 2 && stored.every((v) => Number.isFinite(Number(v)))) {
+    return { coordinates: stored.map(Number), source: 'customer-position' };
+  }
+
+  return { coordinates: null, source: 'none' };
+}
+
+/** Delivery statuses that mean the driver is free to take another order. */
+const TERMINAL_DELIVERY_STATUSES = ['delivered', 'completed', 'cancelled'];
+
 module.exports = {
   OFFER_TIMEOUT_MS,
   ROUND_PAUSE_MS,
@@ -164,4 +213,7 @@ module.exports = {
   distanceMeters,
   toCandidates,
   withConnectedFallback,
+  assignmentStateForDeliveryStatus,
+  TERMINAL_DELIVERY_STATUSES,
+  resolveDropoff,
 };

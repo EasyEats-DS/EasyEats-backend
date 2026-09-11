@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const axios = require('axios');
 
 const DeliveryAssignment = require('../models/DeliveryAssignment');
+const Delivery = require('../models/Delivery');
 const { createDelivery } = require('../controllers/delivery');
 const registry = require('./socketRegistry');
 const {
@@ -18,6 +19,9 @@ const {
   distanceMeters,
   toCandidates,
   withConnectedFallback,
+  assignmentStateForDeliveryStatus,
+  TERMINAL_DELIVERY_STATUSES,
+  resolveDropoff,
 } = require('./dispatchRules');
 
 const GATEWAY_URL = process.env.GATEWAY_URL || 'http://api-gateway:5003';
@@ -30,6 +34,19 @@ const GATEWAY_URL = process.env.GATEWAY_URL || 'http://api-gateway:5003';
  * it never loses one.
  */
 const timers = new Map();
+
+/**
+ * The socket server, captured at boot.
+ *
+ * Delivery status is written by a Kafka handler that has no socket context, but
+ * it still has to advance the assignment. Holding the reference here lets that
+ * path do so without threading `io` through the controllers.
+ */
+let ioRef = null;
+const setIo = (io) => {
+  ioRef = io;
+};
+const activeIo = (io) => io || ioRef;
 
 const clearTimer = (assignmentId) => {
   const handle = timers.get(String(assignmentId));
@@ -62,10 +79,44 @@ async function busyDriverIds() {
     state: { $in: ['accepted', 'picked_up'] },
     driverId: { $ne: null },
   })
-    .select('driverId')
+    .select('driverId orderId deliveryId')
     .lean();
 
-  return new Set(busy.map((assignment) => String(assignment.driverId)));
+  if (busy.length === 0) return new Set();
+
+  // Cross-check against the deliveries themselves. The assignment is a mirror
+  // of the delivery, and a mirror can fall behind -- if it does, the driver is
+  // counted busy for every future order and silently never works again. Rather
+  // than trust the mirror, finished deliveries are reconciled here and their
+  // drivers released.
+  const finished = await Delivery.find({
+    orderId: { $in: busy.map((assignment) => assignment.orderId) },
+    deliveryStatus: { $in: TERMINAL_DELIVERY_STATUSES },
+  })
+    .select('orderId deliveryStatus')
+    .lean();
+
+  const free = new Set();
+  for (const delivery of finished) {
+    const state = assignmentStateForDeliveryStatus(delivery.deliveryStatus);
+    free.add(String(delivery.orderId));
+
+    console.warn(
+      `[dispatch] order ${delivery.orderId} is ${delivery.deliveryStatus} but its ` +
+        `assignment was still open; releasing the driver`,
+    );
+
+    await DeliveryAssignment.updateOne(
+      { orderId: String(delivery.orderId), state: { $in: ['accepted', 'picked_up'] } },
+      { $set: { state: state || 'delivered' } },
+    );
+  }
+
+  return new Set(
+    busy
+      .filter((assignment) => !free.has(String(assignment.orderId)))
+      .map((assignment) => String(assignment.driverId)),
+  );
 }
 
 /**
@@ -90,8 +141,10 @@ async function fetchNearbyDrivers(coordinates) {
 const pickupCoordinates = (assignment) =>
   assignment?.snapshot?.restaurant?.position?.coordinates || null;
 
-const dropoffCoordinates = (assignment) =>
-  assignment?.snapshot?.customer?.position?.coordinates || null;
+const dropoffCoordinates = (assignment) => resolveDropoff(assignment?.snapshot).coordinates;
+
+/** The address line the customer wrote, for the driver to read at the door. */
+const dropoffAddress = (assignment) => assignment?.snapshot?.deliveryAddress || null;
 
 /** Rebuilds the candidate list for a fresh round. */
 async function buildCandidates(assignment) {
@@ -188,7 +241,10 @@ async function offerNext(io, assignmentId) {
       name: offered.snapshot?.restaurant?.name,
       coordinates: pickupCoordinates(offered),
     },
-    dropoff: { coordinates: dropoffCoordinates(offered) },
+    dropoff: {
+      coordinates: dropoffCoordinates(offered),
+      address: dropoffAddress(offered),
+    },
     distanceMeters: next.candidate.distance,
     totalAmount: offered.snapshot?.totalAmount,
     paymentMethod: offered.snapshot?.paymentMethod,
@@ -421,7 +477,7 @@ async function handleAccept(io, { driverId, assignmentId, offerToken }) {
     customerId: claimed.customerId,
     restaurantId: claimed.restaurantId,
     pickupLocation: { lng: pickup[0], lat: pickup[1], address: claimed.snapshot?.restaurant?.name },
-    dropoffLocation: { lng: dropoff[0], lat: dropoff[1] },
+    dropoffLocation: { lng: dropoff[0], lat: dropoff[1], address: dropoffAddress(claimed) },
     products: claimed.snapshot?.products,
     paymentMethod: claimed.snapshot?.paymentMethod,
     totalPrice: claimed.snapshot?.totalAmount,
@@ -448,8 +504,8 @@ async function handleAccept(io, { driverId, assignmentId, offerToken }) {
     orderId: claimed.orderId,
     delivery,
     customer: claimed.snapshot?.customer,
-    pickup: { coordinates: pickup },
-    dropoff: { coordinates: dropoff },
+    pickup: { coordinates: pickup, name: claimed.snapshot?.restaurant?.name },
+    dropoff: { coordinates: dropoff, address: dropoffAddress(claimed) },
   });
 
   notifyCustomer(io, claimed, 'delivery:assigned', {
@@ -583,16 +639,11 @@ async function subscribeToTracking(io, socket, { orderId, userId }) {
  * ends so a finished order stops streaming locations.
  */
 async function updateDeliveryState(io, { orderId, status }) {
-  const stateByStatus = {
-    picked_up: 'picked_up',
-    in_progress: 'picked_up',
-    delivered: 'delivered',
-    completed: 'delivered',
-    cancelled: 'cancelled',
-  };
-
-  const state = stateByStatus[status];
-  if (!state) return null;
+  const state = assignmentStateForDeliveryStatus(status);
+  if (!state) {
+    console.warn(`[dispatch] ignoring unknown delivery status "${status}" for order ${orderId}`);
+    return null;
+  }
 
   const assignment = await DeliveryAssignment.findOneAndUpdate(
     { orderId: String(orderId) },
@@ -602,17 +653,40 @@ async function updateDeliveryState(io, { orderId, status }) {
 
   if (!assignment) return null;
 
-  io.to(trackingRoom(assignment.orderId)).emit('delivery:status', {
-    orderId: assignment.orderId,
-    status: state,
-  });
+  console.log(`[dispatch] order ${assignment.orderId} -> ${state}`);
+
+  const server = activeIo(io);
+  if (server) {
+    server.to(trackingRoom(assignment.orderId)).emit('delivery:status', {
+      orderId: assignment.orderId,
+      status: state,
+    });
+  }
 
   if (['delivered', 'cancelled'].includes(state)) {
     clearTimer(assignment._id);
-    io.socketsLeave(trackingRoom(assignment.orderId));
+    if (server) server.socketsLeave(trackingRoom(assignment.orderId));
   }
 
   return assignment;
+}
+
+/**
+ * Advances the assignment to match a delivery that has just been written.
+ *
+ * Called from the status-write path itself rather than from a socket handler.
+ * The assignment used to be advanced only by a `status_update` message the
+ * driver's browser emitted, so a delivery could be marked delivered while its
+ * assignment stayed `accepted` -- leaving that driver counted as busy, and
+ * therefore skipped, for every order that followed.
+ */
+async function syncAssignmentFromDelivery(delivery) {
+  if (!delivery?.orderId || !delivery?.deliveryStatus) return null;
+
+  return updateDeliveryState(null, {
+    orderId: delivery.orderId,
+    status: delivery.deliveryStatus,
+  });
 }
 
 async function fetchDriverProfile(driverId) {
@@ -685,6 +759,8 @@ async function recoverInFlight(io) {
 }
 
 module.exports = {
+  setIo,
+  syncAssignmentFromDelivery,
   startDispatch,
   handleAccept,
   handleReject,

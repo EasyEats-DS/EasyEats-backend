@@ -12,6 +12,9 @@ const {
   distanceMeters,
   toCandidates,
   withConnectedFallback,
+  assignmentStateForDeliveryStatus,
+  TERMINAL_DELIVERY_STATUSES,
+  resolveDropoff,
 } = require('./dispatchRules');
 
 const candidates = [
@@ -218,4 +221,63 @@ test('an order with no nearby drivers still reaches whoever is online', () => {
 
 test('nothing is invented when nobody is connected', () => {
   assert.deepEqual(withConnectedFallback([], []), []);
+});
+
+test('a delivery status maps onto the assignment state that mirrors it', () => {
+  assert.equal(assignmentStateForDeliveryStatus('assigned'), 'accepted');
+  assert.equal(assignmentStateForDeliveryStatus('picked_up'), 'picked_up');
+  assert.equal(assignmentStateForDeliveryStatus('delivered'), 'delivered');
+  assert.equal(assignmentStateForDeliveryStatus('cancelled'), 'cancelled');
+});
+
+test('the older client vocabulary still maps, so legacy rows are not stranded', () => {
+  assert.equal(assignmentStateForDeliveryStatus('in_progress'), 'picked_up');
+  assert.equal(assignmentStateForDeliveryStatus('completed'), 'delivered');
+});
+
+test('an unknown status maps to nothing rather than guessing', () => {
+  assert.equal(assignmentStateForDeliveryStatus('banana'), null);
+  assert.equal(assignmentStateForDeliveryStatus(undefined), null);
+});
+
+test('terminal delivery statuses are the ones that free a driver', () => {
+  // A driver still counted busy by a finished delivery never gets another
+  // order, so both vocabularies must be recognised as finished.
+  for (const status of ['delivered', 'completed', 'cancelled']) {
+    assert.ok(TERMINAL_DELIVERY_STATUSES.includes(status), status);
+  }
+  for (const status of ['assigned', 'picked_up', 'in_progress']) {
+    assert.ok(!TERMINAL_DELIVERY_STATUSES.includes(status), status);
+  }
+});
+
+test('the drop-off the customer chose wins over their last known position', () => {
+  const result = resolveDropoff({
+    deliveryLocation: { coordinates: [80.443, 6.543] },
+    customer: { position: { coordinates: [79.861, 6.927] } },
+  });
+
+  assert.deepEqual(result.coordinates, [80.443, 6.543]);
+  assert.equal(result.source, 'chosen');
+});
+
+test('an order placed before drop-offs existed falls back to the customer position', () => {
+  const result = resolveDropoff({ customer: { position: { coordinates: [79.861, 6.927] } } });
+
+  assert.deepEqual(result.coordinates, [79.861, 6.927]);
+  assert.equal(result.source, 'customer-position');
+});
+
+test('a malformed drop-off is ignored rather than routed to', () => {
+  const result = resolveDropoff({
+    deliveryLocation: { coordinates: [80.443] },
+    customer: { position: { coordinates: [79.861, 6.927] } },
+  });
+
+  assert.deepEqual(result.coordinates, [79.861, 6.927]);
+});
+
+test('an order with no usable location at all reports none', () => {
+  assert.deepEqual(resolveDropoff({}), { coordinates: null, source: 'none' });
+  assert.deepEqual(resolveDropoff(undefined), { coordinates: null, source: 'none' });
 });
