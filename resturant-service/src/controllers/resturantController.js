@@ -104,9 +104,10 @@ exports.addMenuItem = async (restaurantId, menuItem) => {
     restaurant.updatedAt = Date.now();
     
     const updatedRestaurant = await restaurant.save();
-    await updatedRestaurant.populate('ownerId', 'name email');
     
-    return updatedRestaurant;
+    // Return the item that was just created, not the whole restaurant --
+    // callers render this straight into the menu list.
+    return updatedRestaurant.menu[updatedRestaurant.menu.length - 1];
   } catch (error) {
     console.error('Error adding menu item:', error);
     throw error;
@@ -134,9 +135,9 @@ exports.updateMenuItem = async (restaurantId, menuItemId, updateData) => {
     restaurant.updatedAt = Date.now();
     
     const updatedRestaurant = await restaurant.save();
-    await updatedRestaurant.populate('ownerId', 'name email');
     
-    return updatedRestaurant;
+    // Return the updated item rather than the whole restaurant.
+    return updatedRestaurant.menu.id(menuItemId);
   } catch (error) {
     console.error('Error updating menu item:', error);
     throw error;

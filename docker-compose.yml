@@ -1,47 +1,79 @@
 # version: '3.8'
 services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    container_name: zookeeperx
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
-    networks:
-      - EasyEats-network
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "2181"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-
+  # Kafka in KRaft mode (single-node broker + controller).
+  # ZooKeeper was removed in Kafka 4.0 / Confluent Platform 8.0, so there is
+  # no zookeeper service any more and the broker self-manages metadata.
   kafka:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:8.3.1
     container_name: kafka
     ports:
       - "9092:9092"
+      - "29092:29092"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      CLUSTER_ID: mjop6gvIQhCry79CvPSK3g
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKAJS_NO_PARTITIONER_WARNING: "1"
-    depends_on:
-      zookeeper:
-        condition: service_healthy
+    volumes:
+      - kafka-data:/var/lib/kafka/data
     networks:
       - EasyEats-network
     healthcheck:
       test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
-      retries: 3
-      start_period: 15s
+      retries: 12
+      start_period: 30s
+
+  # Creates every topic the services use before they start.
+  # Without this the services race Kafka's lazy auto-creation and the first
+  # metadata request fails with UNKNOWN_TOPIC_OR_PARTITION, crashing them.
+  kafka-init:
+    image: confluentinc/cp-kafka:8.3.1
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command:
+      - bash
+      - -c
+      - |
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic auth-requests --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic auth-responses --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic delivery-request --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic delivery-response --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic notification-request --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic notification-response --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order-request --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order-response --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order-status --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic order_placed --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic owner-validation --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic payment-request --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic payment-response --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic restaurant-request --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic restaurant-response --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic restaurant-status --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic user-order --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic user-request --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic user-response --partitions 1 --replication-factor 1;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic user-validation --partitions 1 --replication-factor 1;
+        echo "--- topics ready ---";
+        kafka-topics --bootstrap-server kafka:9092 --list;
+    networks:
+      - EasyEats-network
+    restart: "no"
 
   api-gateway:
     build: ./api-gateway
@@ -49,8 +81,8 @@ services:
     ports:
       - "5003:5003"
     depends_on:
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     environment:
       - PORT=5003
       - KAFKA_BROKER=kafka:9092
@@ -72,8 +104,8 @@ services:
       - KAFKA_BROKER=kafka:9092
       - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_users?retryWrites=true&w=majority
     depends_on:
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     networks:
       - EasyEats-network
     restart: on-failure
@@ -84,8 +116,8 @@ services:
     ports:
       - "5001:5001"
     depends_on:
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     environment:
       - PORT=5001
       - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_users?retryWrites=true&w=majority
@@ -100,8 +132,8 @@ services:
     ports:
       - "5002:5002"
     depends_on:
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     environment:
       - PORT=5002
       - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_orders?retryWrites=true&w=majority
@@ -116,8 +148,8 @@ services:
     ports:
       - "5004:5004"
     depends_on:
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     environment:
       - PORT=5004
       - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_resturants?retryWrites=true&w=majority
@@ -135,8 +167,8 @@ services:
     ports:
       - "5005:5005"
     depends_on:
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     environment:
       - PORT=5005
       - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_notifications?retryWrites=true&w=majority
@@ -156,8 +188,8 @@ services:
     ports:
       - "5006:5006"
     depends_on:
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     environment:
     - PORT=5006
     - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_payments?retryWrites=true&w=majority
@@ -174,8 +206,8 @@ services:
     ports:
       - "3001:3001"
     depends_on:
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     environment:
     - PORT=3001
     - CLIENT_URL=http://localhost:5173
@@ -189,3 +221,6 @@ services:
 networks:
   EasyEats-network:
     driver: bridge
+
+volumes:
+  kafka-data:
