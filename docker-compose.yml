@@ -86,9 +86,9 @@ services:
     environment:
       - PORT=5003
       - KAFKA_BROKER=kafka:9092
-      - JWT_SECRET=your_super_secret_key
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is not set — copy .env.example to .env and fill it in}
       - JWT_EXPIRES_IN=1h
-      - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_users?retryWrites=true&w=majority
+      - MONGO_URI=${MONGO_URI_USERS:?MONGO_URI_USERS is not set — copy .env.example to .env and fill it in}
     networks:
       - EasyEats-network
     restart: on-failure
@@ -99,10 +99,10 @@ services:
     ports:
       - "3002:3002"
     environment:
-      - JWT_SECRET=your_super_secret_key
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is not set — copy .env.example to .env and fill it in}
       - JWT_EXPIRES_IN=1h
       - KAFKA_BROKER=kafka:9092
-      - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_users?retryWrites=true&w=majority
+      - MONGO_URI=${MONGO_URI_USERS:?MONGO_URI_USERS is not set — copy .env.example to .env and fill it in}
     depends_on:
       kafka-init:
         condition: service_completed_successfully
@@ -120,7 +120,7 @@ services:
         condition: service_completed_successfully
     environment:
       - PORT=5001
-      - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_users?retryWrites=true&w=majority
+      - MONGO_URI=${MONGO_URI_USERS:?MONGO_URI_USERS is not set — copy .env.example to .env and fill it in}
       - KAFKA_BROKER=kafka:9092
       # How far a driver may be from the pickup point and still be offered the
       # order. Dispatch asks nearest-first, so this is a ceiling, not a target.
@@ -139,7 +139,7 @@ services:
         condition: service_completed_successfully
     environment:
       - PORT=5002
-      - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_orders?retryWrites=true&w=majority
+      - MONGO_URI=${MONGO_URI_ORDERS:?MONGO_URI_ORDERS is not set — copy .env.example to .env and fill it in}
       - KAFKA_BROKER=kafka:9092
     networks:
       - EasyEats-network
@@ -155,11 +155,11 @@ services:
         condition: service_completed_successfully
     environment:
       - PORT=5004
-      - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_resturants?retryWrites=true&w=majority
+      - MONGO_URI=${MONGO_URI_RESTAURANTS:?MONGO_URI_RESTAURANTS is not set — copy .env.example to .env and fill it in}
       - KAFKA_BROKER=kafka:9092
-      - CLOUDINARY_CLOUD_NAME=denqj4zdy
-      - CLOUDINARY_API_KEY=931338397364491
-      - CLOUDINARY_API_SECRET=MPyY4EXbYpPs7c9_6VC-O16Qm_Q
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:?CLOUDINARY_CLOUD_NAME is not set}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:?CLOUDINARY_API_KEY is not set}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:?CLOUDINARY_API_SECRET is not set}
     networks:
       - EasyEats-network
     restart: on-failure
@@ -174,13 +174,13 @@ services:
         condition: service_completed_successfully
     environment:
       - PORT=5005
-      - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_notifications?retryWrites=true&w=majority
+      - MONGO_URI=${MONGO_URI_NOTIFICATIONS:?MONGO_URI_NOTIFICATIONS is not set — copy .env.example to .env and fill it in}
       - KAFKA_BROKER=kafka:9092
-      - EMAIL_USER=radalapuththu@gmail.com
-      - EMAIL_PASSWORD=lltaxfluinkzxbxs
-      - TWILIO_ACCOUNT_SID=AC4bae37c77902e4e82bd53da5f8fed20d
-      - TWILIO_AUTH_TOKEN=bba99268c95c5d2915dada3cc32053d7
-      - TWILIO_PHONE_NUMBER=+15868003046
+      - EMAIL_USER=${EMAIL_USER:?EMAIL_USER is not set}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD:?EMAIL_PASSWORD is not set}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:?TWILIO_ACCOUNT_SID is not set}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:?TWILIO_AUTH_TOKEN is not set}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER:?TWILIO_PHONE_NUMBER is not set}
     networks:
       - EasyEats-network
     restart: on-failure
@@ -195,9 +195,9 @@ services:
         condition: service_completed_successfully
     environment:
     - PORT=5006
-    - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_payments?retryWrites=true&w=majority
-    - STRIPE_SECRET_KEY=sk_test_51RGkbGP1kuLOW6vWPbqAzPhgdsXeMRLulgMeYVDRHVw8SmOzsc6ePOokXhCwEhtJuONLR0h6NNnG5bSB4TvXvteo00B8CKnJdg
-    - STRIPE_WEBHOOK_SECRET=whsec_rN53tA2CKB1pb3ZkMW3QNI39A1KDNlQb
+    - MONGO_URI=${MONGO_URI_PAYMENTS:?MONGO_URI_PAYMENTS is not set — copy .env.example to .env and fill it in}
+    - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:?STRIPE_SECRET_KEY is not set}
+    - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:?STRIPE_WEBHOOK_SECRET is not set}
     - KAFKA_BROKER=kafka:9092  # Changed from localhost:9092
     networks:
       - EasyEats-network
@@ -215,9 +215,9 @@ services:
     - PORT=3001
     - CLIENT_URL=http://localhost:5173
     - NODE_ENV=development
-    - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_delivery?retryWrites=true&w=majority
+    - MONGO_URI=${MONGO_URI_DELIVERY:?MONGO_URI_DELIVERY is not set — copy .env.example to .env and fill it in}
     - KAFKA_BROKER=kafka:9092  # Added this line
-    - JWT_SECRET=your_super_secret_key
+    - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is not set — copy .env.example to .env and fill it in}
     - GATEWAY_URL=http://api-gateway:5003
     # Sequential dispatch: how long one driver has to answer, how long to wait
     # before sweeping the candidate list again, and how many sweeps to attempt.
