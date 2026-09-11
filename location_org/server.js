@@ -4,6 +4,7 @@ const configureSocket = require('./config/socket');
 //const { initializeSampleRestaurants } = require('./controllers/restaurantController');
 const OrderConsumer = require('./kafka/consumer');
 const socketController = require('./controllers/socketController');
+const dispatch = require('./services/dispatchService');
 
 const PORT = process.env.PORT || 3001;
 const server = http.createServer(app);
@@ -17,9 +18,13 @@ server.listen(PORT, async () => {
   try {
     //await initializeSampleRestaurants();
     console.log(`Server running on port ${PORT}`);
-    
+
     // Start Kafka consumer
     await OrderConsumer.initialize(io);
+
+    // Searches that were mid-flight when this process last stopped have no
+    // timer any more; re-arm them before new orders start arriving.
+    await dispatch.recoverInFlight(io);
   } catch (error) {
     console.error('Server startup error:', error);
     process.exit(1);

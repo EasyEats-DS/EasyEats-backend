@@ -1,10 +1,12 @@
 const KafkaService = require('../services/kafkaService');
 const RestaurantService = require('../controllers/restaurantController');
 const CustomerService = require('../controllers/Customer');
-const { getSocketMaps } = require('../services/socketService');
+const dispatch = require('../services/dispatchService');
 const DriverService = require('../controllers/Driver');
 const axios = require('axios');
 const { getDeliveryByDriverId, createDelivery, getDeliveryByCusId, updateDeliveryStatus,deleteDeliveryById } = require('../controllers/delivery');
+
+const GATEWAY_URL = process.env.GATEWAY_URL || 'http://api-gateway:5003';
 
 class OrderConsumer {
   constructor() {
@@ -95,76 +97,33 @@ class OrderConsumer {
 
 
   async processOrderPlaced(io, orderData) {
-    console.log('Processing order placed______:', orderData);
+    console.log('Processing order placed:', orderData?._id || orderData?.orderId);
     try {
-      // Enrich order data with related entities
+      // Enriched once, here, and then carried on the assignment: every re-offer
+      // to the next driver reuses this rather than refetching the restaurant
+      // and the customer.
       const enrichedOrder = await this.enrichOrderData(orderData);
-      console.log('Enriched order data for placed order:', enrichedOrder);
-      
-      // Notify drivers about the new order
-      await this.notifyDrivers(io, enrichedOrder);
 
+      await dispatch.startDispatch(io, enrichedOrder);
     } catch (error) {
       console.error('Error processing order placed:', error);
     }
   }
 
   async enrichOrderData(orderData) {
-    let [restaurant, customer] = await Promise.all(
-            
-      [
-        await axios.get(`http://api-gateway:5003/restaurants/${orderData.restaurantId}`),
-           await axios.get(`http://api-gateway:5003/users/d/${orderData.userId}`)
-      //RestaurantService.getRestaurantById(orderData.restaurantId),
-      //CustomerService.getCustomerById(orderData.customerId)
+    let [restaurant, customer] = await Promise.all([
+      axios.get(`${GATEWAY_URL}/restaurants/${orderData.restaurantId}`),
+      axios.get(`${GATEWAY_URL}/users/d/${orderData.userId}`),
     ]);
-     restaurant = restaurant.data;
-     customer = customer.data.user;
+
+    restaurant = restaurant.data;
+    customer = customer.data.user;
+
     return {
       ...orderData,
       restaurant,
-      customer
+      customer,
     };
-  }
-
-  async notifyDrivers(io, orderData) {
-    try {
-      const { driverSocketMap } = getSocketMaps(); // Use driverSocketMap for id => socketId
-      //const nearD = await DriverService.getNearbyDrivers(orderData.restaurant.position);
-      let nearD = await axios.post(`http://api-gateway:5003/users/nearby`, {
-        
-        location: orderData.restaurant.position.coordinates
-        
-      });
-      //nearD = nearD.data;
-      console.log('Nearby drivers______:', nearD.data);
-      const notifiedSockets = [];
-  
-      for (const driver of nearD.data) {
-        const driverId = driver._id.toString();
-        const socketId = driverSocketMap.get(driverId);
-        
-        if (!socketId) {
-          console.log(`Nearby driver ${driverId} is not connected`);
-          continue;
-        }
-  
-        // Emit to the connected and nearby driver
-        io.to(socketId).emit('new_order', orderData);
-        notifiedSockets.push(socketId);
-        console.log(`Notified driver ${driverId} via socket ${socketId}`);
-      }
-  
-      if (notifiedSockets.length === 0) {
-        console.log('No nearby connected drivers to notify');
-      } else {
-        console.log(`Notified ${notifiedSockets.length} nearby drivers about order ${orderData.orderId}`);
-      }
-  
-    } catch (error) {
-      console.error('Error notifying drivers:', error);
-      throw error;
-    }
   }
 }
 

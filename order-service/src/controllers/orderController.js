@@ -323,13 +323,8 @@ exports.getOrdersByUserId = async (userId) => {
       })
       .lean();
 
-    // If no orders exist, throw 404 
-    if (!orders.length) {
-      const err = new Error('No orders found for this user');
-      err.statusCode = 404;
-      throw err;
-    }
-
+    // A user who has never ordered is a valid state, not an error: return an
+    // empty list so clients can show an empty state instead of a failure.
     return { orders };
   } catch (error) {
     console.error('Error fetching orders by userId:', error);

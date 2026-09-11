@@ -195,26 +195,54 @@ exports.getUsers = async (query) => {
     };
   }
 };
+/**
+ * How far from the pickup point a driver may be and still be offered the order.
+ *
+ * Deliberately generous by default: drivers here are spread across the country,
+ * and an order that reaches nobody is worse than one that reaches someone far
+ * away, since dispatch offers nearest-first anyway.
+ */
+const NEARBY_RADIUS_METERS = Number(process.env.NEARBY_DRIVER_RADIUS_METERS) || 50000;
+
+/**
+ * Drivers near a point, nearest first.
+ *
+ * `coordinates` is GeoJSON order -- [longitude, latitude] -- the same order the
+ * 2dsphere index on `position` requires. Passing [lat, lng] here silently
+ * returns nonsense rather than an error, so the order matters more than it looks.
+ */
 exports.getNearbyDrivers = async (location) => {
-  console.log('Fetching nearby drivers for location:', location);
-  try{
-    const  coordinates  = location.location;
-    console.log('Coordinates for nearby drivers:', coordinates);
+  try {
+    const coordinates = location?.location;
+
+    if (!Array.isArray(coordinates) || coordinates.length !== 2) {
+      console.warn('Nearby driver lookup got no usable coordinates:', coordinates);
+      return [];
+    }
+
+    const [longitude, latitude] = coordinates.map(Number);
+    if (Number.isNaN(longitude) || Number.isNaN(latitude)) {
+      console.warn('Nearby driver lookup got non-numeric coordinates:', coordinates);
+      return [];
+    }
+
+    const maxDistance = Number(location.maxDistance) || NEARBY_RADIUS_METERS;
+
     const nearbyDrivers = await User.find({
+      role: 'DELIVERY_PERSON',
       position: {
         $near: {
-          $geometry: {
-            type: 'Point',
-            coordinates: [parseFloat(coordinates[0]), parseFloat(coordinates[1])]
-          },
-          $maxDistance: 5000 // 5 km radius
+          $geometry: { type: 'Point', coordinates: [longitude, latitude] },
+          $maxDistance: maxDistance
         }
-      },
-      role: 'DELIVERY_PERSON' // Assuming you have a role field to identify drivers
+      }
     }).select('-password');
 
+    console.log(
+      `Found ${nearbyDrivers.length} driver(s) within ${maxDistance}m of [${longitude}, ${latitude}]`
+    );
     return nearbyDrivers;
-  }catch (error) {
+  } catch (error) {
     console.error('Error fetching nearby drivers:', error);
     throw error;
   }
@@ -222,7 +250,9 @@ exports.getNearbyDrivers = async (location) => {
 
 exports.updateLocation =  async (location,customerId) =>{
   console.log('Updating customer location:', location, customerId);
-  const loc = [location.latitude, location.longitude];
+  // GeoJSON order: [longitude, latitude]. Writing these the other way round is
+  // what made every $near distance on this collection meaningless.
+  const loc = [Number(location.longitude), Number(location.latitude)];
   try {
     const customer = await User.findById(customerId);
     if (!customer) {

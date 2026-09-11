@@ -1,205 +1,182 @@
-const Delivery = require('../models/Delivery');
-const { updateLocation} = require('../controllers/Customer');
-const { updateDriverLocation } = require('../controllers/Driver');
-const { getMapData } = require('../utils/maps');
 const axios = require('axios');
 
-// Track connections
-const connectedDrivers = new Map(); // socketId => driverId
-const driverSocketMap = new Map();  // driverId => socketId
-const customerSocketMap = new Map(); // customerId => socketId
-const driverToCustomerMap = new Map(); // driverId => customerId
+const { getMapData } = require('../utils/maps');
+const registry = require('./socketRegistry');
+const dispatch = require('./dispatchService');
+
+const GATEWAY_URL = process.env.GATEWAY_URL || 'http://api-gateway:5003';
 
 const handleConnection = async (socket) => {
   console.log('New socket connection:', socket.id);
   try {
     const mapData = await getMapData();
-    // const map = {
-    //   availableDrivers:mapData.availableDrivers.data.data.data.users,
-    //   restaurants: mapData.restaurants.data
-    // }
-    //console.log('Map data fetched:', mapData);
-    console.log('Map data fetched:', mapData.availableDrivers);
     socket.emit('map:init', mapData);
   } catch (error) {
     console.error('Error initializing map data:', error);
   }
 };
 
-const handleIdentification = (socket, { role, id }) => {
-  if (!role || !id) {
-    console.warn('Invalid identification data:', { role, id });
-    return;
+/**
+ * Binds this socket to the signed-in user.
+ *
+ * The id comes from the verified token rather than the payload the client sent;
+ * the payload is now only a hint about which role the page is acting as.
+ */
+const handleIdentification = (socket) => {
+  const user = socket.data?.user;
+
+  if (!user?.id || !user.role) {
+    console.warn(`[socket] ${socket.id} tried to identify without a valid token`);
+    socket.emit('identify:result', { ok: false, reason: 'unauthenticated' });
+    return null;
   }
 
-  console.log(`Identified ${role} with ID: ${id} and socket ID: ${socket.id}`);
+  registry.register({ role: user.role, id: user.id, socket });
+  console.log(`[socket] ${user.role} ${user.id} on socket ${socket.id}`);
 
-  if (role === 'driver') {
-    const oldSocketId = driverSocketMap.get(id);
-    if (oldSocketId && oldSocketId !== socket.id) {
-      const oldSocket = socket.server.sockets.sockets.get(oldSocketId);
-      if (oldSocket) {
-        console.log(`Disconnecting previous socket ${oldSocketId} for driver ${id}`);
-        oldSocket.disconnect(true);
-      }
-    }
-
-    connectedDrivers.set(socket.id, id);
-    driverSocketMap.set(id, socket.id);
-  } else if (role === 'customer') {
-    const oldSocketId = customerSocketMap.get(id);
-    if (oldSocketId && oldSocketId !== socket.id) {
-      const oldSocket = socket.server.sockets.sockets.get(oldSocketId);
-      if (oldSocket) {
-        console.log(`Disconnecting previous socket ${oldSocketId} for customer ${id}`);
-        oldSocket.disconnect(true);
-      }
-    }
-
-    customerSocketMap.set(id, socket.id);
-  }
+  socket.emit('identify:result', { ok: true, role: user.role, id: user.id });
+  return user;
 };
 
-const handleAcceptOrder = async (io, socket, { driver, order }) => {
-  
-  console.log('Driver accepted order:', { driver, order });
+/**
+ * Rejoins whichever order this user is already party to.
+ *
+ * A driver who refreshes mid-delivery, or a customer who reopens the app, would
+ * otherwise stay out of the tracking room until the next assignment.
+ */
+const restoreTracking = async (socket) => {
+  const user = socket.data?.user;
+  if (!user?.id) return;
+
+  const assignment =
+    user.role === 'driver'
+      ? await dispatch.activeAssignmentForDriver(user.id)
+      : await dispatch.activeAssignmentForCustomer(user.id);
+
+  if (!assignment) return;
+
+  socket.join(dispatch.trackingRoom(assignment.orderId));
+  socket.emit('delivery:restored', {
+    orderId: assignment.orderId,
+    state: assignment.state,
+    driverId: assignment.driverId,
+    deliveryId: assignment.deliveryId,
+    snapshot: assignment.snapshot,
+  });
+};
+
+const handleAcceptOffer = async (io, socket, { assignmentId, offerToken }) => {
+  const user = socket.data?.user;
+  if (user?.role !== 'driver') return;
+
   try {
-    if (!driver || !order) {
-      throw new Error('Invalid order acceptance data');
-    }
-
-    const name = driver.firstName;
-    console.log(`Driver ${name} accepting order ${order._id}`);
-
-    console.log('Driver ID:', driver._id.toString());
-    driverToCustomerMap.set(driver._id.toString(), order.customer._id.toString());
-    
-    const driverSocketId = driverSocketMap.get(driver._id.toString());
-    console.log("driverSocketId", driverSocketId);
-    const customerSocket = customerSocketMap.get(order.customer._id);
-    console.log("customerSocket", customerSocket);
-    const customerLocation = order.customer.position.coordinates;
-    console.log("customerLocation", customerLocation);
-    const cus = order.customer;
-    console.log("products", order.products);
-    
-    if (driverSocketId) {
-      io.to(driverSocketId).emit('customer_location', { cus, coords: customerLocation });
-    }
-
-    if (customerSocket) {
-      console.log("aaaaaaaaaaaaaaa__________");
-      io.to(customerSocket).emit('order_assigned', { name, order });
-      
-      const f = await axios.post(`http://api-gateway:5003/deliveries`, {
-        orderId: order._id,
-        products: order.products,
-        totalPrice: order.totalAmount,
-        paymentMethod: order.paymentMethod,
-        dropoffLocation: order.dropoff,
-        restaurantId: order.restaurantId,
-        driverId: driver._id,
-        customerId: order.customer._id,
-        status: 'assigned',
-        createdAt: new Date()
-      });
-      console.log("delivery created",f.data);
-      // await Delivery.create({
-      //   orderId: order.orderId,
-      //   dropoffLocation: order.dropoff,
-      //   restaurantId: order.restaurantId,
-      //   driverId: driver._id,
-      //   customerId: order.customerId,
-      //   status: 'assigned',
-      //   createdAt: new Date()
-      // });
-      
-      console.log(`Order ${order.orderId} assigned to driver ${name}`);
-    }
+    await dispatch.handleAccept(io, { driverId: user.id, assignmentId, offerToken });
   } catch (error) {
-    console.error('Error in order acceptance:', error);
+    console.error('Error accepting offer:', error);
+    socket.emit('delivery:offer_result', { ok: false, assignmentId, reason: 'server_error' });
   }
 };
 
-const handleOrderStatusUpdate = (io, { orderId }) => {
-  const driverId = orderId.driverId;
-  const customerId = orderId.customerId;
-  const customerSocket = customerSocketMap.get(customerId);
-  console.log("customerSocket", customerSocket);
-  console.log('Order status update:', { orderId });
-  let dorder;
-  if(orderId.deliveryStatus === 'in_progress'){
-    dorder = 'shipped';
-  }
-  if(orderId.deliveryStatus === 'completed'){
-    dorder = 'delivered';
-  }
+const handleRejectOffer = async (io, socket, { assignmentId, offerToken }) => {
+  const user = socket.data?.user;
+  if (user?.role !== 'driver') return;
 
   try {
-    if (!orderId) {
-      throw new Error('Invalid order status update data');
-    }
+    await dispatch.handleReject(io, { driverId: user.id, assignmentId, offerToken });
+  } catch (error) {
+    console.error('Error rejecting offer:', error);
+  }
+};
 
-    io.to(customerSocket).emit('order_status_updated', { orderId });
+const handleSubscribeTracking = async (io, socket, { orderId }) => {
+  const user = socket.data?.user;
+  if (!user?.id) return;
+
+  try {
+    const result = await dispatch.subscribeToTracking(io, socket, { orderId, userId: user.id });
+    socket.emit('tracking:subscribed', { orderId, ...result });
+  } catch (error) {
+    console.error('Error subscribing to tracking:', error);
+  }
+};
+
+const handleOrderStatusUpdate = async (io, { orderId }) => {
+  // The delivery document itself arrives here under the name `orderId`.
+  const delivery = orderId;
+  if (!delivery?.orderId) return;
+
+  try {
+    await dispatch.updateDeliveryState(io, {
+      orderId: delivery.orderId,
+      status: delivery.deliveryStatus,
+    });
   } catch (error) {
     console.error('Error updating order status:', error);
   }
 };
 
+/**
+ * Persists a position and fans it out.
+ *
+ * Two audiences, deliberately separate: every connected client gets the coarse
+ * `location_updated` that moves map markers, while only the customer waiting on
+ * this specific driver gets `delivery:driver_location`.
+ */
+const handleLiveLocation = async (io, socket, { location }) => {
+  const user = socket.data?.user;
+  if (!user?.id || !location) return;
 
-const handleLiveLocation = async (io, { location, user }) => {
-  console.log('Live location update:', { location, user });
+  const { latitude, longitude } = location;
+  if (latitude === undefined || longitude === undefined) return;
+
+  // GeoJSON order, matching how positions are stored and queried.
+  const coordinates = [Number(longitude), Number(latitude)];
+
   try {
-    if (!location || !user) {
-      throw new Error('Invalid location data');
-    }
-    console.log("location",location);
-    console.log("user",user);
-    const loc = [location.latitude, location.longitude];
-
-    
-
-      await axios.post('http://api-gateway:5003/users/updateLocation', {
-        location: location,
-        customerId: user._id
-      });
-    
-    // if (user.role === 'customer') {
-    //   await updateLocation(loc, user._id);
-    // } else if (user.role === 'driver') {
-    //   await updateDriverLocation(loc, user._id);
-    // }
-    
-    io.emit('location_updated', { 
-      userId: user._id, 
-      role: user.role, 
-      location: loc 
+    await axios.post(`${GATEWAY_URL}/users/updateLocation`, {
+      location,
+      customerId: user.id,
     });
   } catch (error) {
-    console.error('Error updating live location:', error);
+    console.error('Error persisting location:', error.message);
+  }
+
+  io.emit('location_updated', {
+    userId: user.id,
+    role: user.rawRole,
+    location: coordinates,
+  });
+
+  if (user.role === 'driver') {
+    try {
+      await dispatch.relayDriverLocation(io, user.id, coordinates);
+    } catch (error) {
+      console.error('Error relaying driver location:', error);
+    }
   }
 };
 
-const handleDisconnect = (socket) => {
-  const driverId = connectedDrivers.get(socket.id);
+const handleDisconnect = async (io, socket) => {
+  const driverId = registry.unregister(socket.id);
+
   if (driverId) {
-    connectedDrivers.delete(socket.id);
-    driverSocketMap.delete(driverId);
-    driverToCustomerMap.delete(driverId);
+    try {
+      await dispatch.handleDriverDisconnect(io, driverId);
+    } catch (error) {
+      console.error('Error handling driver disconnect:', error);
+    }
   }
 };
 
 module.exports = {
   handleConnection,
   handleIdentification,
-  handleAcceptOrder,
+  restoreTracking,
+  handleAcceptOffer,
+  handleRejectOffer,
+  handleSubscribeTracking,
   handleLiveLocation,
   handleOrderStatusUpdate,
   handleDisconnect,
-  getSocketMaps: () => ({
-    connectedDrivers,
-    driverSocketMap,
-    customerSocketMap,
-    driverToCustomerMap
-  })
+  getSocketMaps: registry.getSocketMaps,
 };

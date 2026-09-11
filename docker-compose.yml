@@ -122,6 +122,9 @@ services:
       - PORT=5001
       - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_users?retryWrites=true&w=majority
       - KAFKA_BROKER=kafka:9092
+      # How far a driver may be from the pickup point and still be offered the
+      # order. Dispatch asks nearest-first, so this is a ceiling, not a target.
+      - NEARBY_DRIVER_RADIUS_METERS=50000
     networks:
       - EasyEats-network
     restart: on-failure
@@ -214,6 +217,13 @@ services:
     - NODE_ENV=development
     - MONGO_URI=mongodb+srv://madhawaawishka:madhawaawishka@cluster0.ixf1ahz.mongodb.net/EasyEatsDB_delivery?retryWrites=true&w=majority
     - KAFKA_BROKER=kafka:9092  # Added this line
+    - JWT_SECRET=your_super_secret_key
+    - GATEWAY_URL=http://api-gateway:5003
+    # Sequential dispatch: how long one driver has to answer, how long to wait
+    # before sweeping the candidate list again, and how many sweeps to attempt.
+    - OFFER_TIMEOUT_MS=30000
+    - DISPATCH_ROUND_PAUSE_MS=60000
+    - DISPATCH_MAX_ROUNDS=5
     networks:
       - EasyEats-network
     restart: on-failure

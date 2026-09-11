@@ -105,9 +105,20 @@ catch (err) {
 }
 }
 
+/**
+ * Older clients speak a different delivery vocabulary than the schema does.
+ * Mapping them here keeps a single set of values in the database -- findByIdAndUpdate
+ * does not run validators by default, so an unmapped value would otherwise be
+ * stored happily and then fail to match anything that reads it back.
+ */
+const STATUS_ALIASES = {
+  in_progress: 'picked_up',
+  completed: 'delivered',
+};
+
 exports.updateDeliveryStatus = async (diverId,statuss) => {
   const deliveryId  = diverId;
-  const status  = statuss;
+  const status  = STATUS_ALIASES[statuss] || statuss;
   console.log("delivery status update deliveryId:", deliveryId); // Debugging line
   console.log("delivery status update status:", status); // Debugging line
 
@@ -115,7 +126,7 @@ exports.updateDeliveryStatus = async (diverId,statuss) => {
     const updatedDelivery = await Delivery.findByIdAndUpdate(
       deliveryId,
       { deliveryStatus: status },
-      { new: true }
+      { new: true, runValidators: true }
     )
 
     if (!updatedDelivery) {
