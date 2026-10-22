@@ -17,13 +17,29 @@
 
 ---
 
+## 📌 Table of Contents
+- [📖 System Overview](#-system-overview)
+- [🔑 Verified Demo & Testing Accounts](#-verified-demo--testing-accounts)
+- [🎬 Screen Recording & Platform Demonstration](#-screen-recording--platform-demonstration)
+- [📸 Real Production Screenshots](#-real-production-screenshots)
+- [🏗️ Architectural Blueprint](#️-architectural-blueprint)
+- [⚙️ Microservices Ecosystem Breakdown](#️-microservices-ecosystem-breakdown)
+- [📡 Kafka Event-Driven Architecture](#-kafka-event-driven-architecture)
+- [🗺️ Geospatial Engine & Real-Time Tracking](#️-geospatial-engine--real-time-tracking)
+- [📂 Backend Project Directory Structure](#-backend-project-directory-structure)
+- [🚀 Deployment & Local Setup](#-deployment--local-setup)
+- [🔑 Environment Variables Specification](#-environment-variables-specification)
+- [🧪 Health Checks & Ingress API Routes](#-health-checks--ingress-api-routes)
+
+---
+
 ## 📖 System Overview
 
-**EasyEats Backend** is an enterprise-grade, distributed microservices platform engineered for high-volume food delivery operations. Built with **Node.js**, **Express**, and **Apache Kafka**, the system powers seamless interactions among customers, restaurant vendors, logistics delivery drivers, and platform super administrators.
+**EasyEats Backend** is a high-throughput, distributed microservices platform engineered for enterprise food delivery and on-demand logistics. Built with **Node.js**, **Express**, and **Apache Kafka**, the backend powers the entire transactional and real-time lifecycle between customers, restaurants, delivery drivers, and platform administrators.
 
 ### Core Architecture Highlights
-- ⚡ **Asynchronous Event-Driven Messaging**: Decoupled microservice communication mediated by **Apache Kafka** brokers with request-response correlation ID patterns.
-- 🌐 **Centralized API Gateway**: Single point of ingress on Port `5003` orchestrating routing, authorization token verification, payload validation, and event dispatching.
+- ⚡ **Asynchronous Event-Driven Bus**: Decoupled microservice communication mediated by an **Apache Kafka** broker with request-response correlation ID patterns.
+- 🌐 **Centralized API Gateway**: Single point of ingress on Port `5003` orchestrating routing, JWT authentication validation, request validation, and event dispatching.
 - 📍 **Geospatial Proximity Engine**: MongoDB `2dsphere` spatial indexing for millisecond-latency restaurant discovery and nearest-driver dispatch.
 - 🛵 **Real-Time Bidirectional Telemetry**: High-frequency WebSocket server powered by **Socket.IO** (Port `3001`) broadcasting driver GPS coordinates directly to tracking maps.
 - 💳 **Resilient Payment & Webhook Lifecycle**: Integrated **Stripe** payment processing supporting asynchronous webhooks and automated refunds.
@@ -32,41 +48,66 @@
 
 ---
 
-## 🎬 Screen Recording & Platform Demonstration
+## 🔑 Verified Demo & Testing Accounts
 
-The backend powers the complete real-time lifecycle of the EasyEats platform, as demonstrated below:
+The following verified accounts exist in the production database and can be used for API testing or frontend authentication:
 
-### 📹 Full Platform Walkthrough Recording
-
-<p align="center">
-  <img src="./docs/assets/demo_walkthrough.webp" alt="EasyEats System Walkthrough" width="90%" style="border-radius: 10px; border: 1px solid #334155; box-shadow: 0 8px 24px rgba(0,0,0,0.25);" />
-</p>
-<p align="center"><em>Screen recording capturing end-to-end platform workflows powered by the microservices backend.</em></p>
+| Persona | Email | Password | Role Key | Test Capabilities |
+| :--- | :--- | :--- | :--- | :--- |
+| 🧑‍🍳 **Customer** | `madhawaawishka@gmail.com` | `Madhawa123` | `CUSTOMER` | Places orders, tests Stripe payment intents, and initiates live tracking |
+| 🛵 **Delivery Person** | `john@gmail.com` | `Madhawa123` | `DELIVERY_PERSON` | Connects via WebSocket to receive dispatches and stream GPS telemetry |
 
 ---
 
-## 📸 Platform Interfaces & System Previews
+## 🎬 Screen Recording & Platform Demonstration
+
+Watch the backend microservices handle live authentication, restaurant queries, cart modifications, and real-time WebSocket map tracking:
+
+<p align="center">
+  <img src="./docs/assets/demo_walkthrough.webp" alt="EasyEats Real Screen Recording Demo" width="95%" style="border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 30px rgba(0,0,0,0.3);" />
+</p>
+<p align="center"><em>Authentic screen recording demonstrating real backend operations: Kafka event routing, MongoDB Atlas queries, and WebSocket streaming.</em></p>
+
+---
+
+## 📸 Real Production Screenshots
 
 <div align="center">
   <table>
     <tr>
       <td width="50%" align="center">
-        <strong>Customer Ordering & Discovery View</strong><br/><br/>
-        <img src="./docs/assets/ui_showcase.png" alt="Customer Catalog Interface" width="100%" />
+        <strong>🛒 Newly Refined Shopping Cart UI</strong><br/>
+        <em>Live item calculations, promo discounts & checkout</em><br/><br/>
+        <img src="./docs/assets/screenshot_cart.png" alt="Newly Refined Cart UI" width="100%" />
       </td>
       <td width="50%" align="center">
-        <strong>Admin Dispatch & Realtime Telemetry</strong><br/><br/>
-        <img src="./docs/assets/admin_dashboard_showcase.png" alt="Admin Control Center" width="100%" />
+        <strong>🍽️ Real Restaurant Catalog (Customer View)</strong><br/>
+        <em>Live data fetched from MongoDB `EasyEatsDB_resturants`</em><br/><br/>
+        <img src="./docs/assets/screenshot_customer_home.png" alt="Real Restaurant Catalog" width="100%" />
       </td>
     </tr>
     <tr>
       <td width="50%" align="center">
-        <strong>Customer Authentication Flow</strong><br/><br/>
-        <img src="./docs/assets/screenshot_login.png" alt="Customer Login Screen" width="100%" />
+        <strong>📋 Restaurant Menu & Dish Catalog</strong><br/>
+        <em>Dish items, Cloudinary media & price records</em><br/><br/>
+        <img src="./docs/assets/screenshot_restaurant_menu.png" alt="Restaurant Menu & Dishes" width="100%" />
       </td>
       <td width="50%" align="center">
-        <strong>Shopping Cart & Checkout Interface</strong><br/><br/>
-        <img src="./docs/assets/screenshot_cart.png" alt="Cart Screen" width="100%" />
+        <strong>🗺️ Customer Live GPS Delivery Map</strong><br/>
+        <em>Socket.IO real-time location stream on Leaflet map</em><br/><br/>
+        <img src="./docs/assets/screenshot_customer_tracking.png" alt="Customer Live Tracking Map" width="100%" />
+      </td>
+    </tr>
+    <tr>
+      <td width="50%" align="center">
+        <strong>🛵 Delivery Driver Dispatch Radar</strong><br/>
+        <em>Real-time driver location broadcast and ticket claiming</em><br/><br/>
+        <img src="./docs/assets/screenshot_driver_map.png" alt="Driver Dispatch Radar" width="100%" />
+      </td>
+      <td width="50%" align="center">
+        <strong>📊 Restaurant & Dispatch Analytics</strong><br/>
+        <em>Sales revenue charts, active tickets & fleet stats</em><br/><br/>
+        <img src="./docs/assets/admin_dashboard_showcase.png" alt="Admin Dashboard" width="100%" />
       </td>
     </tr>
   </table>
@@ -76,7 +117,7 @@ The backend powers the complete real-time lifecycle of the EasyEats platform, as
 
 ## 🏗️ Architectural Blueprint
 
-### System Topology & Microservices Map
+### Master System Topology
 
 ```mermaid
 graph TB
@@ -157,7 +198,7 @@ graph TB
 
 | Service Name | Port | Primary Responsibility | Data Store | Key Integrations |
 | :--- | :--- | :--- | :--- | :--- |
-| **`api-gateway`** | `5003` | Single entry point, request validation, Kafka request-reply correlation, auth token validation. | Memory / Cache | KafkaJS |
+| **`api-gateway`** | `5003` | Single entry point, request validation, Kafka request-reply correlation, auth token validation. | In-Memory Routing | KafkaJS |
 | **`authentication-service`** | `3002` | User sign-in, Bcrypt password hashing, JWT token issuance & claims parsing. | `EasyEatsDB_users` | JWT, Bcrypt |
 | **`user-service`** | `5001` | Profile CRUD, delivery address books, user roles (`CUSTOMER`, `RESTAURANT_OWNER`, `DELIVERY_PERSON`, `SUPER_ADMIN`), geospatial driver coordinates. | `EasyEatsDB_users` | MongoDB 2dsphere |
 | **`resturant-service`** | `5004` | Restaurant onboarding, menu management, dish category CRUD, live stock toggle, geospatial restaurant radius search. | `EasyEatsDB_resturants` | Cloudinary, MongoDB 2dsphere |
@@ -242,107 +283,32 @@ const restaurants = await Restaurant.find({
 });
 ```
 
-### Real-Time Socket.io Events (`location_org`)
-
-```javascript
-// Driver connects and identifies:
-socket.emit('identify', { userId: driverId, role: 'driver' });
-
-// Driver streams live GPS telemetry:
-socket.emit('live_location', {
-  driverId,
-  orderId,
-  latitude: 6.9271,
-  longitude: 79.8612
-});
-
-// Customer listens to real-time driver coordinates:
-socket.on('live_location', (data) => {
-  updateDriverMarkerOnMap(data.latitude, data.longitude);
-});
-```
-
 ---
 
 ## 📂 Backend Project Directory Structure
 
 ```text
 EasyEats-backend/
-├── docs/
-│   └── assets/                        # Screenshots, diagrams, and recordings
-│       ├── architecture_diagram.png   # System architecture diagram
-│       ├── demo_walkthrough.webp      # Platform screen recording
-│       ├── ui_showcase.png            # Customer UI preview
-│       ├── admin_dashboard_showcase.png # Admin dashboard preview
-│       ├── screenshot_login.png       # Auth login preview
-│       └── screenshot_cart.png        # Cart preview
+├── docs/assets/                       # Shared media, recordings & screenshots
+│   ├── architecture_diagram.png       # Master architecture infographic
+│   ├── demo_walkthrough.webp          # Full platform animated screen recording
+│   ├── screenshot_cart.png            # Newly refined Cart UI screenshot
+│   ├── screenshot_customer_home.png   # Real fetched restaurant catalog
+│   ├── screenshot_restaurant_menu.png # Restaurant menu & dishes
+│   ├── screenshot_customer_tracking.png # Real customer live Leaflet map
+│   └── screenshot_driver_map.png      # Delivery driver radar & map
 ├── docker-compose.yml                 # Master multi-container orchestration
 ├── api-gateway/                       # Ingress Gateway (Port 5003)
-│   ├── src/
-│   │   ├── config/                    # Gateway configurations
-│   │   ├── middlewares/               # JWT & Error middlewares
-│   │   ├── routes/                    # Proxied route controllers (auth, orders, etc.)
-│   │   ├── services/                  # Kafka producer & consumer with Correlation IDs
-│   │   └── index.js                   # Express server entry point
-│   ├── Dockerfile
-│   └── package.json
+│   ├── src/routes/                    # Proxied route controllers (auth, orders, etc.)
+│   ├── src/services/kafkaService.js   # Kafka producer/consumer with Correlation IDs
+│   └── src/index.js                   # Gateway server entry point
 ├── authentication-service/            # Auth & JWT issuance (Port 3002)
-│   ├── src/
-│   │   ├── controller/authController.js
-│   │   ├── models/userModel.js
-│   │   ├── routes/authRoutes.js
-│   │   ├── services/kafkaService.js
-│   │   └── index.js
-│   ├── Dockerfile
-│   └── package.json
 ├── user-service/                      # User profiles & roles (Port 5001)
-│   ├── src/
-│   │   ├── controllers/userController.js
-│   │   ├── models/userModel.js
-│   │   ├── services/kafkaService.js
-│   │   └── index.js
-│   ├── Dockerfile
-│   └── package.json
 ├── order-service/                     # Orders & State Machine (Port 5002)
-│   ├── src/
-│   │   ├── controllers/orderController.js
-│   │   ├── models/orderModel.js
-│   │   ├── services/kafkaProducer.js
-│   │   └── index.js
-│   ├── Dockerfile
-│   └── package.json
 ├── resturant-service/                 # Restaurants & Menus (Port 5004)
-│   ├── src/
-│   │   ├── controllers/resturantController.js
-│   │   ├── models/resturantModel.js
-│   │   ├── services/kafkaService.js
-│   │   └── index.js
-│   ├── Dockerfile
-│   └── package.json
 ├── payment-service/                   # Stripe Payments & Refunds (Port 5006)
-│   ├── src/
-│   │   ├── controllers/paymentController.js
-│   │   ├── models/paymentModel.js
-│   │   ├── routes/paymentRoutes.js
-│   │   ├── services/kafkaService.js
-│   │   └── index.js
-│   ├── Dockerfile
-│   └── package.json
 ├── notification-service/              # Twilio SMS & Nodemailer (Port 5005)
-│   ├── src/
-│   │   ├── services/emailService.js
-│   │   ├── services/smsService.js
-│   │   ├── services/kafkaService.js
-│   │   └── server.js
-│   ├── Dockerfile
-│   └── package.json
 └── location_org/                      # Realtime GPS & WebSockets (Port 3001)
-    ├── config/socket.js               # Socket.io configuration
-    ├── controllers/socketController.js # WebSocket event handlers
-    ├── kafka/consumer.js              # Kafka consumer for order_placed
-    ├── services/socketService.js      # Driver & Customer room routing
-    ├── Dockerfile
-    └── server.js
 ```
 
 ---
@@ -371,48 +337,7 @@ docker compose down
 
 ---
 
-### Option 2: Running Services Individually for Local Development
-
-If running outside Docker, start an Apache Kafka broker instance locally on `localhost:9092` (or use Docker for Kafka only):
-
-```bash
-# Start Zookeeper and Kafka
-docker compose up -d zookeeper kafka
-```
-
-Then in separate terminal windows, navigate to each service directory:
-
-```bash
-# 1. API Gateway (Port 5003)
-cd api-gateway && npm install && npm start
-
-# 2. Authentication Service (Port 3002)
-cd ../authentication-service && npm install && npm start
-
-# 3. User Service (Port 5001)
-cd ../user-service && npm install && npm start
-
-# 4. Order Service (Port 5002)
-cd ../order-service && npm install && npm start
-
-# 5. Restaurant Service (Port 5004)
-cd ../resturant-service && npm install && npm start
-
-# 6. Payment Service (Port 5006)
-cd ../payment-service && npm install && npm start
-
-# 7. Notification Service (Port 5005)
-cd ../notification-service && npm install && npm start
-
-# 8. Real-time Location Service (Port 3001)
-cd ../location_org && npm install && npm start
-```
-
----
-
 ## 🔑 Environment Variables Specification
-
-The platform utilizes microservice-scoped environment variables. Refer to the table below for configuration:
 
 | Variable | Target Service | Purpose | Sample Value |
 | :--- | :--- | :--- | :--- |
@@ -437,30 +362,23 @@ The platform utilizes microservice-scoped environment variables. Refer to the ta
 
 ## 🧪 Health Checks & Ingress API Routes
 
-### System Health
+### 1. Test Gateway Health
 ```bash
-# Check API Gateway Health
 curl http://localhost:5003/health
-# Response: 200 OK - {"status": "healthy"}
+# Output: API Gateway is healthy
 ```
 
-### Core REST Endpoints (via API Gateway Port `5003`)
+### 2. Test Customer Authentication with Demo Account
+```bash
+curl -X POST http://localhost:5003/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"madhawaawishka@gmail.com","password":"Madhawa123"}'
+```
 
-| Method | Endpoint | Description | Protected |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/auth/login` | Authenticate user, receive JWT & user profile | ❌ No |
-| `POST` | `/users/register` | Register customer, driver, or restaurant owner | ❌ No |
-| `GET` | `/users/:id` | Fetch user profile and saved addresses | ✅ Yes |
-| `GET` | `/restaurants` | List restaurants with optional geo-filtering | ❌ No |
-| `GET` | `/restaurants/:id` | Fetch restaurant details and categorized menu | ❌ No |
-| `POST` | `/restaurants` | Onboard and create a new restaurant profile | ✅ Yes (Owner) |
-| `POST` | `/orders` | Place a new customer food order | ✅ Yes (Customer) |
-| `GET` | `/orders/user/:userId`| Fetch user's order history | ✅ Yes |
-| `GET` | `/orders/restaurant/:id`| Fetch active tickets for restaurant kitchen | ✅ Yes (Owner) |
-| `PUT` | `/orders/:id/status`| Update order state (`processing`, `shipped`, etc.)| ✅ Yes (Owner/Driver) |
-| `POST` | `/payments/create-intent`| Create Stripe PaymentIntent for cart checkout | ✅ Yes |
-| `POST` | `/payments/webhook` | Stripe asynchronous webhook confirmation | ❌ Stripe Signature |
-| `POST` | `/notifications/sms` | Dispatch transactional SMS via Twilio | ✅ Yes |
+### 3. Fetch Real Restaurant Catalog
+```bash
+curl http://localhost:5003/restaurants
+```
 
 ---
 

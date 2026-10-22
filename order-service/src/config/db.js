@@ -12,7 +12,7 @@ const connectDB = async () => {
 
   try {
     await mongoose.connect(mongoURI, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 30000,
       retryWrites: true
     });
     console.log("Service connected to MongoDB");
