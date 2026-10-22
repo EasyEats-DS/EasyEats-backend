@@ -218,6 +218,9 @@ router.get("/user/:userId", async (req, res) => {
     return res.status(200).json(ordersResult);
   } catch (err) {
     console.error("Error fetching orders by userId:", err);
+    if (err.statusCode === 404 || err.message === "No orders found for this user") {
+      return res.status(200).json({ orders: [] });
+    }
     return res.status(err.statusCode || 500).json({ message: err.message });
   }
 });

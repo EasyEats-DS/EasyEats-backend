@@ -35,8 +35,7 @@ const createTransporter = () => {
         // Verify connection configuration
         transporter.verify(function (error, success) {
             if (error) {
-                console.error('Email service verification failed:', error);
-                throw error;
+                console.error('Email service verification failed (continuing anyway):', error.message);
             } else {
                 console.log('Email server connection verified and ready');
             }

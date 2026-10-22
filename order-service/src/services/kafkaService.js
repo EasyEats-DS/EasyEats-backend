@@ -100,7 +100,7 @@ const initKafkaConsumer = async () => {
                 value: JSON.stringify({
                   correlationId: messageValue.correlationId,
                   success: false,
-                  statusCode: 500,
+                  statusCode: error.statusCode || 500,
                   message: error.message,
                   timestamp: new Date().toISOString()
                 })
