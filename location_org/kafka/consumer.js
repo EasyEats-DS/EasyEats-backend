@@ -110,60 +110,97 @@ class OrderConsumer {
   }
 
   async enrichOrderData(orderData) {
-    let [restaurant, customer] = await Promise.all(
-            
-      [
-        await axios.get(`http://api-gateway:5003/restaurants/${orderData.restaurantId}`),
-           await axios.get(`http://api-gateway:5003/users/d/${orderData.userId}`)
-      //RestaurantService.getRestaurantById(orderData.restaurantId),
-      //CustomerService.getCustomerById(orderData.customerId)
-    ]);
-     restaurant = restaurant.data;
-     customer = customer.data.user;
-    return {
-      ...orderData,
-      restaurant,
-      customer
-    };
+    try {
+      let restaurant = {};
+      let customer = {};
+
+      try {
+        const restRes = await axios.get(`http://api-gateway:5003/restaurants/${orderData.restaurantId}`);
+        restaurant = restRes.data || {};
+      } catch (e) {
+        console.warn('Could not fetch restaurant details:', e.message);
+      }
+
+      try {
+        const cusRes = await axios.get(`http://api-gateway:5003/users/d/${orderData.userId}`);
+        customer = cusRes.data?.user || cusRes.data || {};
+      } catch (e) {
+        console.warn('Could not fetch customer details:', e.message);
+      }
+
+      return {
+        ...orderData,
+        restaurant,
+        customer
+      };
+    } catch (err) {
+      console.error('Error enriching order data:', err);
+      return orderData;
+    }
   }
 
   async notifyDrivers(io, orderData) {
     try {
       const { driverSocketMap } = getSocketMaps(); // Use driverSocketMap for id => socketId
-      //const nearD = await DriverService.getNearbyDrivers(orderData.restaurant.position);
-      let nearD = await axios.post(`http://api-gateway:5003/users/nearby`, {
-        
-        location: orderData.restaurant.position.coordinates
-        
-      });
-      //nearD = nearD.data;
-      console.log('Nearby drivers______:', nearD.data);
+      const restaurantCoords = orderData.restaurant?.position?.coordinates;
+      const customerUserId = (orderData.userId || orderData.customer?._id || '').toString();
+      let nearbyDrivers = [];
+
+      if (restaurantCoords && Array.isArray(restaurantCoords)) {
+        try {
+          const nearD = await axios.post(`http://api-gateway:5003/users/nearby`, {
+            location: restaurantCoords
+          });
+          nearbyDrivers = nearD.data || [];
+          console.log('Nearby drivers from geospatial query:', nearbyDrivers);
+        } catch (nearErr) {
+          console.warn('Geospatial nearby query warning:', nearErr.message);
+        }
+      }
+
       const notifiedSockets = [];
-  
-      for (const driver of nearD.data) {
-        const driverId = driver._id.toString();
+
+      for (const driver of nearbyDrivers) {
+        const driverId = driver._id ? driver._id.toString() : driver.toString();
+        if (customerUserId && driverId === customerUserId) {
+          continue;
+        }
+
         const socketId = driverSocketMap.get(driverId);
         
         if (!socketId) {
           console.log(`Nearby driver ${driverId} is not connected`);
           continue;
         }
-  
+
         // Emit to the connected and nearby driver
         io.to(socketId).emit('new_order', orderData);
         notifiedSockets.push(socketId);
         console.log(`Notified driver ${driverId} via socket ${socketId}`);
       }
-  
-      if (notifiedSockets.length === 0) {
-        console.log('No nearby connected drivers to notify');
-      } else {
-        console.log(`Notified ${notifiedSockets.length} nearby drivers about order ${orderData.orderId}`);
+
+      // Fallback: If no nearby connected drivers found, notify all currently connected drivers (except ordering customer)
+      if (notifiedSockets.length === 0 && driverSocketMap.size > 0) {
+        console.log('No nearby drivers found within 5km. Notifying all connected delivery drivers as fallback...');
+        for (const [driverId, socketId] of driverSocketMap.entries()) {
+          if (customerUserId && driverId === customerUserId) {
+            console.log(`Skipping notification to driver ${driverId} because they are the ordering customer`);
+            continue;
+          }
+          io.to(socketId).emit('new_order', orderData);
+          notifiedSockets.push(socketId);
+          console.log(`Notified fallback connected driver ${driverId} via socket ${socketId}`);
+        }
       }
-  
+
+      if (notifiedSockets.length === 0) {
+        console.log('No drivers currently connected to receive socket notification');
+      } else {
+        console.log(`Successfully notified ${notifiedSockets.length} driver(s) about order ${orderData.orderId || orderData._id}`);
+      }
+
     } catch (error) {
       console.error('Error notifying drivers:', error);
-      throw error;
     }
   }
 }

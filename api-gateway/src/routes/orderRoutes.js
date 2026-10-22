@@ -45,11 +45,22 @@ router.post("/", async (req, res) => {
       payload: req.body,
     });
   
-    const createDelivery =  await sendMessageWithResponse('order_placed',{
-      payload: orderResult,
-    });
+    // Build comprehensive payload for location / delivery service
+    const deliveryPayload = {
+      ...req.body,
+      ...(orderResult && typeof orderResult === 'object' ? orderResult : {}),
+      _id: orderResult?._id || orderResult?.id || req.body.orderId,
+      orderId: orderResult?.orderId || req.body.orderId,
+    };
 
-    console.log('Delivery created:', createDelivery);
+    try {
+      const createDelivery = await sendMessageWithResponse('order_placed', {
+        payload: deliveryPayload,
+      });
+      console.log('Delivery event processed:', createDelivery);
+    } catch (deliveryErr) {
+      console.warn('Location service notification warning:', deliveryErr.message);
+    }
     
     return res.status(201).json(orderResult);
   } catch (error) {

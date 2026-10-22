@@ -35,6 +35,12 @@ const handleIdentification = (socket, { role, id }) => {
   console.log(`Identified ${role} with ID: ${id} and socket ID: ${socket.id}`);
 
   if (role === 'driver') {
+    // Clean up if this socket or id was registered as customer
+    customerSocketMap.delete(id);
+    for (const [cId, sId] of customerSocketMap.entries()) {
+      if (sId === socket.id) customerSocketMap.delete(cId);
+    }
+
     const oldSocketId = driverSocketMap.get(id);
     if (oldSocketId && oldSocketId !== socket.id) {
       const oldSocket = socket.server.sockets.sockets.get(oldSocketId);
@@ -47,6 +53,13 @@ const handleIdentification = (socket, { role, id }) => {
     connectedDrivers.set(socket.id, id);
     driverSocketMap.set(id, socket.id);
   } else if (role === 'customer') {
+    // Remove from driver maps if socket or id was previously registered as driver
+    connectedDrivers.delete(socket.id);
+    driverSocketMap.delete(id);
+    for (const [dId, sId] of driverSocketMap.entries()) {
+      if (sId === socket.id) driverSocketMap.delete(dId);
+    }
+
     const oldSocketId = customerSocketMap.get(id);
     if (oldSocketId && oldSocketId !== socket.id) {
       const oldSocket = socket.server.sockets.sockets.get(oldSocketId);
@@ -61,61 +74,77 @@ const handleIdentification = (socket, { role, id }) => {
 };
 
 const handleAcceptOrder = async (io, socket, { driver, order }) => {
-  
   console.log('Driver accepted order:', { driver, order });
   try {
     if (!driver || !order) {
       throw new Error('Invalid order acceptance data');
     }
 
-    const name = driver.firstName;
-    console.log(`Driver ${name} accepting order ${order._id}`);
+    const name = driver.firstName || 'Driver';
+    const driverId = (driver._id || driver.id || '').toString();
+    const customerId = (order.customer?._id || order.userId || '').toString();
 
-    console.log('Driver ID:', driver._id.toString());
-    driverToCustomerMap.set(driver._id.toString(), order.customer._id.toString());
+    // Prevent customer from accepting their own order as driver
+    if (driverId && customerId && driverId === customerId) {
+      console.warn('Rejecting order acceptance: ordering customer cannot accept their own delivery', { driverId, customerId });
+      return;
+    }
+
+    console.log(`Driver ${name} (${driverId}) accepting order ${order._id || order.orderId}`);
+
+    if (driverId && customerId) {
+      driverToCustomerMap.set(driverId, customerId);
+    }
     
-    const driverSocketId = driverSocketMap.get(driver._id.toString());
-    console.log("driverSocketId", driverSocketId);
-    const customerSocket = customerSocketMap.get(order.customer._id);
-    console.log("customerSocket", customerSocket);
-    const customerLocation = order.customer.position.coordinates;
-    console.log("customerLocation", customerLocation);
-    const cus = order.customer;
-    console.log("products", order.products);
+    const driverSocketId = driverSocketMap.get(driverId) || socket.id;
+    const customerSocket = customerSocketMap.get(customerId);
+    const customerLocation = order.customer?.position?.coordinates || [6.9271, 79.8612];
+    const cus = order.customer || {};
     
     if (driverSocketId) {
       io.to(driverSocketId).emit('customer_location', { cus, coords: customerLocation });
+      io.to(driverSocketId).emit('order_assigned_driver', { order });
     }
 
     if (customerSocket) {
-      console.log("aaaaaaaaaaaaaaa__________");
       io.to(customerSocket).emit('order_assigned', { name, order });
-      
+    }
+
+    const pickupLocation = {
+      address: order.restaurant?.address?.street 
+        ? `${order.restaurant.address.street}, ${order.restaurant.address.city || ''}` 
+        : (order.restaurant?.name || 'Restaurant'),
+      lat: order.restaurant?.position?.coordinates?.[0] || 6.9271,
+      lng: order.restaurant?.position?.coordinates?.[1] || 79.8612,
+    };
+
+    const dropoffLocation = {
+      address: order.deliveryAddress 
+        || (order.customer?.address?.street ? `${order.customer.address.street}, ${order.customer.address.city || ''}` : 'Customer Address'),
+      lat: order.customer?.position?.coordinates?.[0] || 6.9271,
+      lng: order.customer?.position?.coordinates?.[1] || 79.8612,
+    };
+
+    try {
       const f = await axios.post(`http://api-gateway:5003/deliveries`, {
-        orderId: order._id,
-        products: order.products,
-        totalPrice: order.totalAmount,
-        paymentMethod: order.paymentMethod,
-        dropoffLocation: order.dropoff,
+        orderId: (order._id || order.orderId || Date.now()).toString(),
+        products: order.products || [],
+        totalPrice: order.totalAmount || 0,
+        paymentMethod: order.paymentMethod || 'cash',
+        pickupLocation,
+        dropoffLocation,
         restaurantId: order.restaurantId,
-        driverId: driver._id,
-        customerId: order.customer._id,
+        driverId: driver._id || driver.id || driverId,
+        customerId: order.customer?._id || order.userId,
         status: 'assigned',
         createdAt: new Date()
       });
-      console.log("delivery created",f.data);
-      // await Delivery.create({
-      //   orderId: order.orderId,
-      //   dropoffLocation: order.dropoff,
-      //   restaurantId: order.restaurantId,
-      //   driverId: driver._id,
-      //   customerId: order.customerId,
-      //   status: 'assigned',
-      //   createdAt: new Date()
-      // });
-      
-      console.log(`Order ${order.orderId} assigned to driver ${name}`);
+      console.log("Delivery created successfully in API Gateway:", f.data);
+    } catch (deliveryPostErr) {
+      console.error("Error creating delivery in API Gateway:", deliveryPostErr.message);
     }
+      
+    console.log(`Order ${order.orderId || order._id} assigned to driver ${name}`);
   } catch (error) {
     console.error('Error in order acceptance:', error);
   }

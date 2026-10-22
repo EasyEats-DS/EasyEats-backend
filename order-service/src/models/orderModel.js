@@ -7,7 +7,10 @@ const OrderSchema = new mongoose.Schema({
   },
   restaurantId: {
     type: String,
-    // required: true,
+    required: true,
+  },
+  orderId: {
+    type: String,
   },
   products: [
     {
@@ -35,6 +38,23 @@ const OrderSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  deliveryAddress: {
+    type: String,
+    default: "SLIIT Campus, Malabe",
+  },
+  dropNote: {
+    type: String,
+    default: "",
+  },
+  deliveryType: {
+    type: String,
+    default: "standard",
+  },
+  dropoff: {
+    address: { type: String },
+    lat: { type: Number },
+    lng: { type: Number },
+  },
   status: {
     type: String,
     enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
@@ -43,10 +63,6 @@ const OrderSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-  },
-  restaurantId: {
-    type: String,
-    required: true
   },
   updatedAt: {
     type: Date,

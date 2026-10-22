@@ -18,8 +18,8 @@ router.post('/create-payment-intent', async (req, res) => {
     const result = await sendMessageWithResponse('payment-request', {
       action: 'createPaymentIntent',
       payload: {
-        amount: Math.round(amount * 1), // Convert to cents
-        currency: currency || 'lkr',
+        amount: Number(amount),
+        currency: currency || 'usd',
         orderId,
         userId
       }
